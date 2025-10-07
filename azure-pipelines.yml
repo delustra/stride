@@ -45,9 +45,52 @@ steps:
     configuration: '$(buildConfiguration)'
     maximumCpuCount: false
 
-- task: PublishBuildArtifacts@1
-  displayName: 'Publish Artifacts'
+# Find where the build output actually is
+- task: PowerShell@2
+  displayName: 'Locate Build Output'
   inputs:
-    PathtoPublish: 'Bin/Windows/$(buildConfiguration)'
-    ArtifactName: 'stride-build'
+    targetType: 'inline'
+    script: |
+      Write-Host "Searching for build output directories..."
+      
+      # Check common locations
+      $locations = @(
+        "Bin",
+        "bin",
+        "sources\editor\Stride.GameStudio\bin",
+        "Build"
+      )
+      
+      foreach ($loc in $locations) {
+        if (Test-Path $loc) {
+          Write-Host "Found: $loc"
+          Get-ChildItem $loc -Recurse -Directory | Select-Object -First 20 | ForEach-Object {
+            Write-Host "  - $($_.FullName)"
+          }
+        }
+      }
+      
+      # Look specifically for GameStudio
+      Write-Host "`nSearching for GameStudio output..."
+      Get-ChildItem -Path "sources" -Filter "Stride.GameStudio.exe" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+        Write-Host "Found GameStudio at: $($_.FullName)"
+      }
+
+# Publish the GameStudio build output specifically
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish GameStudio Binaries'
+  inputs:
+    PathtoPublish: 'sources/editor/Stride.GameStudio/bin/$(buildConfiguration)/net8.0-windows'
+    ArtifactName: 'gamestudio'
+    publishLocation: 'Container'
   condition: succeeded()
+
+# Publish all compiled binaries
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish All Binaries (sources)'
+  inputs:
+    PathtoPublish: 'sources'
+    ArtifactName: 'stride-sources-output'
+    publishLocation: 'Container'
+  condition: succeeded()
+  continueOnError: true
