@@ -1,0 +1,115 @@
+trigger:
+  branches:
+    include:
+      - master  # or change to 'none' for manual only
+  paths:
+    include:
+      - 'build/Stride.sln'
+      - 'deps/**'
+      - 'sources/**'
+    exclude:
+      - '**/.all-contributorsrc'
+      - '**/.editorconfig'
+      - '**/.gitignore'
+      - '**/*.md'
+      - 'crowdin.yml'
+
+parameters:
+- name: buildConfiguration
+  displayName: 'Build Configuration'
+  type: string
+  default: 'Debug'
+  values:
+  - Debug
+  - Release
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  solution: 'build/Stride.sln'
+  buildConfiguration: ${{ parameters.buildConfiguration }}
+  newVersion: '4.2.10.1'
+
+steps:
+- checkout: self
+  lfs: true
+  clean: true
+
+- task: PowerShell@2
+  displayName: 'Modify PublicVersion to $(newVersion)'
+  inputs:
+    targetType: 'inline'
+    script: |
+      $file = "sources/shared/SharedAssemblyInfo.cs"
+      Write-Host "Modifying version in $file"
+      
+      if (Test-Path $file) {
+        $content = Get-Content $file -Raw
+        $oldContent = $content
+        $content = $content -replace 'public const string PublicVersion = "4\.2\.1\.1";', 'public const string PublicVersion = "$(newVersion)";'
+        Set-Content $file $content -NoNewline
+        
+        # Verify the change
+        Write-Host "`nVerifying modification:"
+        $line = Get-Content $file | Select-String -Pattern "PublicVersion"
+        Write-Host $line
+        
+        if ($oldContent -eq $content) {
+          Write-Warning "File content unchanged - version string may not have been found"
+        } else {
+          Write-Host "✓ Version successfully modified" -ForegroundColor Green
+        }
+      } else {
+        Write-Error "File not found: $file"
+        exit 1
+      }
+
+- task: UseDotNet@2
+  displayName: 'Install .NET 8.0 SDK'
+  inputs:
+    packageType: 'sdk'
+    version: '8.0.x'
+    installationPath: $(Agent.ToolsDirectory)/dotnet
+
+- task: VSBuild@1
+  displayName: 'Prepare MSBuild'
+  inputs:
+    solution: '$(solution)'
+    msbuildArgs: '/version'
+
+- task: MSBuild@1
+  displayName: 'Build Stride Solution'
+  inputs:
+    solution: '$(solution)'
+    msbuildArguments: >
+      -restore
+      -m:1
+      -nr:false
+      -v:m
+      -p:WarningLevel=0
+      -p:Configuration=$(buildConfiguration)
+      -p:StridePlatforms=Windows
+      -p:StrideGraphicsApiDependentBuildAll=true
+      -p:StrideSkipUnitTests=true
+      -p:StrideSkipAutoPack=true
+    platform: 'Any CPU'
+    configuration: '$(buildConfiguration)'
+    maximumCpuCount: false
+    restoreNugetPackages: false
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Build Artifacts'
+  inputs:
+    PathtoPublish: '$(Build.SourcesDirectory)/bin/$(buildConfiguration)'
+    ArtifactName: 'stride-$(buildConfiguration)-$(newVersion)'
+    publishLocation: 'Container'
+  condition: succeededOrFailed()
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Build Logs'
+  inputs:
+    PathtoPublish: '$(Build.SourcesDirectory)/build'
+    ArtifactName: 'build-logs'
+    publishLocation: 'Container'
+  condition: failed()
