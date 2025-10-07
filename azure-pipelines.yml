@@ -1,34 +1,11 @@
 trigger:
-  branches:
-    include:
-      - master  # or change to 'none' for manual only
-  paths:
-    include:
-      - 'build/Stride.sln'
-      - 'deps/**'
-      - 'sources/**'
-    exclude:
-      - '**/.all-contributorsrc'
-      - '**/.editorconfig'
-      - '**/.gitignore'
-      - '**/*.md'
-      - 'crowdin.yml'
-
-parameters:
-- name: buildConfiguration
-  displayName: 'Build Configuration'
-  type: string
-  default: 'Debug'
-  values:
-  - Debug
-  - Release
+- master
 
 pool:
   vmImage: 'windows-latest'
 
 variables:
-  solution: 'build/Stride.sln'
-  buildConfiguration: ${{ parameters.buildConfiguration }}
+  buildConfiguration: 'Release'
   newVersion: '4.2.10.1'
 
 steps:
@@ -37,79 +14,40 @@ steps:
   clean: true
 
 - task: PowerShell@2
-  displayName: 'Modify PublicVersion to $(newVersion)'
+  displayName: 'Modify PublicVersion'
   inputs:
     targetType: 'inline'
     script: |
       $file = "sources/shared/SharedAssemblyInfo.cs"
-      Write-Host "Modifying version in $file"
-      
-      if (Test-Path $file) {
-        $content = Get-Content $file -Raw
-        $oldContent = $content
-        $content = $content -replace 'public const string PublicVersion = "4\.2\.1\.1";', 'public const string PublicVersion = "$(newVersion)";'
-        Set-Content $file $content -NoNewline
-        
-        # Verify the change
-        Write-Host "`nVerifying modification:"
-        $line = Get-Content $file | Select-String -Pattern "PublicVersion"
-        Write-Host $line
-        
-        if ($oldContent -eq $content) {
-          Write-Warning "File content unchanged - version string may not have been found"
-        } else {
-          Write-Host "✓ Version successfully modified" -ForegroundColor Green
-        }
-      } else {
-        Write-Error "File not found: $file"
-        exit 1
-      }
+      $content = Get-Content $file -Raw
+      $content = $content -replace 'public const string PublicVersion = "4\.2\.1\.1";', 'public const string PublicVersion = "$(newVersion)";'
+      Set-Content $file $content -NoNewline
+      Get-Content $file | Select-String -Pattern "PublicVersion"
 
 - task: UseDotNet@2
-  displayName: 'Install .NET 8.0 SDK'
+  displayName: 'Install .NET 8.0'
   inputs:
     packageType: 'sdk'
     version: '8.0.x'
-    installationPath: $(Agent.ToolsDirectory)/dotnet
 
-- task: VSBuild@1
-  displayName: 'Prepare MSBuild'
+- task: MSBuild@1
+  displayName: 'Build Assembly Processor'
   inputs:
-    solution: '$(solution)'
-    msbuildArgs: '/version'
+    solution: 'sources/core/Stride.Core.AssemblyProcessor/Stride.Core.AssemblyProcessor.csproj'
+    msbuildArguments: '/restore /p:Configuration=$(buildConfiguration)'
+    configuration: '$(buildConfiguration)'
 
 - task: MSBuild@1
   displayName: 'Build Stride Solution'
   inputs:
-    solution: '$(solution)'
-    msbuildArguments: >
-      -restore
-      -m:1
-      -nr:false
-      -v:m
-      -p:WarningLevel=0
-      -p:Configuration=$(buildConfiguration)
-      -p:StridePlatforms=Windows
-      -p:StrideGraphicsApiDependentBuildAll=true
-      -p:StrideSkipUnitTests=true
-      -p:StrideSkipAutoPack=true
-    platform: 'Any CPU'
+    solution: 'build/Stride.sln'
+    msbuildArguments: '-restore -m:1 -nr:false -v:m -p:WarningLevel=0 -p:Configuration=$(buildConfiguration) -p:StridePlatforms=Windows -p:StrideGraphicsApiDependentBuildAll=true -p:StrideSkipUnitTests=true -p:StrideSkipAutoPack=true'
     configuration: '$(buildConfiguration)'
     maximumCpuCount: false
-    restoreNugetPackages: false
 
 - task: PublishBuildArtifacts@1
-  displayName: 'Publish Build Artifacts'
+  displayName: 'Publish Artifacts'
   inputs:
-    PathtoPublish: '$(Build.SourcesDirectory)/bin/$(buildConfiguration)'
-    ArtifactName: 'stride-$(buildConfiguration)-$(newVersion)'
-    publishLocation: 'Container'
-  condition: succeededOrFailed()
-
-- task: PublishBuildArtifacts@1
-  displayName: 'Publish Build Logs'
-  inputs:
-    PathtoPublish: '$(Build.SourcesDirectory)/build'
-    ArtifactName: 'build-logs'
-    publishLocation: 'Container'
-  condition: failed()
+    PathtoPublish: 'Bin/Windows/$(buildConfiguration)'
+    ArtifactName: 'stride-build'
+  condition: succeeded()
