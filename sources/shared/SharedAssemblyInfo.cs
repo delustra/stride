@@ -49,7 +49,7 @@ internal class StrideVersion
     /// The prerelease suffix (e.g. -beta1), a cosmetic, NuGet-ordered label — asset upgraders ignore it (they gate on
     /// the numeric version). Empty for a stable release. The generators overlay it with -devN on dev builds.
     /// </summary>
-    public const string NuGetVersionSuffix = "";
+    public const string NuGetVersionSuffix = "-dev";
 
     /// <summary>
     /// Base version of the content-versioned template packages (Starters, Samples), independent of the engine
