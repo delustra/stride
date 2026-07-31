@@ -12,6 +12,7 @@ using Stride.BepuPhysics.Components;
 using Stride.BepuPhysics.Definitions.Contacts;
 using Stride.BepuPhysics.Definitions.Raycast;
 using Stride.BepuPhysics.Definitions.SimTests;
+using Stride.BepuPhysics.Definitions.Heightfield;
 using Stride.BepuPhysics.Definitions;
 using Stride.Core.Mathematics;
 using Stride.Core.Threading;
@@ -310,6 +311,10 @@ public sealed class BepuSimulation : IDisposable
         var solveDescription = new SolveDescription(8, 1);
 
         Simulation = Simulation.Create(BufferPool, strideNarrowPhaseCallbacks, stridePoseIntegratorCallbacks, solveDescription);
+
+        // Register the custom whole-map heightfield shape's collision/sweep tasks (convex + compound pairs) so terrain
+        // collides with everything the game uses. No-op safe if already registered for this simulation.
+        HeightfieldCollisionTasks.Register(Simulation.NarrowPhase.CollisionTaskRegistry, Simulation.NarrowPhase.SweepTaskRegistry);
 
         CollidableMaterials.Initialize(Simulation);
         ContactEvents.Initialize();
