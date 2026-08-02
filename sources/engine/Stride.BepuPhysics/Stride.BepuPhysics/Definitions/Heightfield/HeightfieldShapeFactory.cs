@@ -19,6 +19,9 @@ namespace Stride.BepuPhysics.Definitions.Heightfield;
 /// </remarks>
 public static class HeightfieldShapeFactory
 {
+    private static readonly Stride.Core.Diagnostics.Logger Log =
+        Stride.Core.Diagnostics.GlobalLogger.GetLogger(nameof(HeightfieldShapeFactory));
+
     /// <summary>
     /// Creates the shape. The caller owns the returned resources and must pass them back to
     /// <see cref="Release"/> once the shape is no longer registered with any simulation.
@@ -45,10 +48,18 @@ public static class HeightfieldShapeFactory
         int blocksX = 0, blocksZ = 0;
         if (coarseBlockCells > 0)
         {
-            // Grid-derived bounds are exact over the sampled corners, so they supersede the source's analytic estimate.
-            coarseBlocks = HeightfieldCoarseGrid.Build(
-                source, pool, origin, cellSize, cellsX, cellsZ, coarseBlockCells,
-                out blocksX, out blocksZ, out minHeight, out maxHeight);
+            if (TryAdoptPyramid(source, pool, cellsX, cellsZ, coarseBlockCells,
+                    out coarseBlocks, out blocksX, out blocksZ, out minHeight, out maxHeight))
+            {
+                // Pyramid adopted — no full-field sampling pass needed.
+            }
+            else
+            {
+                // No compatible pyramid available: sample every cell corner to build the coarse grid.
+                coarseBlocks = HeightfieldCoarseGrid.Build(
+                    source, pool, origin, cellSize, cellsX, cellsZ, coarseBlockCells,
+                    out blocksX, out blocksZ, out minHeight, out maxHeight);
+            }
         }
 
         return new TerrainHeightfieldShape
@@ -66,6 +77,63 @@ public static class HeightfieldShapeFactory
             BlocksX = blocksX,
             BlocksZ = blocksZ,
         };
+    }
+
+    /// <summary>
+    /// Checks whether the source provides a structurally-compatible compiler-baked pyramid, and if so copies it into a
+    /// pool-allocated buffer. Returns false (no allocation) when the source has no pyramid or the layout doesn't match,
+    /// so the caller falls back to <see cref="HeightfieldCoarseGrid.Build"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Buffer ownership.</b> The pyramid arrays are managed/asset memory; the shape's <see cref="TerrainHeightfieldShape.CoarseBlocks"/>
+    /// is a Bepu <see cref="Buffer{T}"/> allocated from the simulation's pool, and <see cref="Release"/> returns it. So
+    /// the data is <b>copied</b> into a fresh pool buffer — never pointing the shape at managed memory.
+    /// <para>
+    /// <b>Compatibility check.</b> The pyramid's <c>cellsPerBlock</c> must equal the collider's <c>coarseBlockCells</c>,
+    /// and the block counts must match <c>ceil(cells/cellsPerBlock)</c>. A mismatch produces a warning and falls back to
+    /// resampling — never a silent misalignment, which would drop contacts.
+    /// </para>
+    /// </remarks>
+    private static bool TryAdoptPyramid(
+        IHeightfieldSource source, BufferPool pool,
+        int cellsX, int cellsZ, int coarseBlockCells,
+        out Buffer<HeightRange> blocks, out int blocksX, out int blocksZ,
+        out float globalMin, out float globalMax)
+    {
+        blocks = default;
+        blocksX = blocksZ = 0;
+        globalMin = float.MaxValue;
+        globalMax = float.MinValue;
+
+        if (source is not IHeightfieldPyramidProvider provider)
+            return false;
+
+        if (!provider.TryGetHeightPyramid(
+                out var minArr, out var maxArr,
+                out int pyrBlocksX, out int pyrBlocksZ, out int pyrCellsPerBlock,
+                out globalMin, out globalMax))
+            return false;
+
+        int expectedBlocksX = (cellsX + coarseBlockCells - 1) / coarseBlockCells;
+        int expectedBlocksZ = (cellsZ + coarseBlockCells - 1) / coarseBlockCells;
+
+        if (pyrCellsPerBlock != coarseBlockCells || pyrBlocksX != expectedBlocksX || pyrBlocksZ != expectedBlocksZ)
+        {
+            Log.Warning(
+                $"Heightfield source provided a pyramid (cellsPerBlock={pyrCellsPerBlock}, blocks={pyrBlocksX}x{pyrBlocksZ}) " +
+                $"that does not match the collider grid (cellsPerBlock={coarseBlockCells}, expected blocks={expectedBlocksX}x{expectedBlocksZ}). " +
+                "Falling back to full-field resampling. Align the TerrainMap's PyramidBlockCells and grid dimensions with the collider's CellSize/CellsX/CellsZ.");
+            return false;
+        }
+
+        int blockCount = pyrBlocksX * pyrBlocksZ;
+        pool.Take<HeightRange>(blockCount, out blocks);
+        for (int i = 0; i < blockCount; i++)
+            blocks[i] = new HeightRange(minArr[i], maxArr[i]);
+
+        blocksX = pyrBlocksX;
+        blocksZ = pyrBlocksZ;
+        return true;
     }
 
     /// <summary>Releases the coarse grid buffer and the source handle. Safe to call on already-released values.</summary>
