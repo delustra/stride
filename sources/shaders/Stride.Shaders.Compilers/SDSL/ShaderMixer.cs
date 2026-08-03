@@ -149,6 +149,12 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
 
         bytecode = SpirvBytecode.CreateBytecodeFromBuffers(temp);
 
+        // Rewrite implicit-LOD texture samples reachable from vertex/hull/domain/geometry
+        // entry points to explicit LOD 0. SPIR-V forbids ImageSampleImplicitLod in those
+        // stages (no derivatives); the SDSL frontend emits it for .Sample() regardless of
+        // stage, producing invalid SPIR-V that spirv-opt rejects. Mirrors HLSL/FXC behavior.
+        bytecode = VertexStageImplicitLodLegalizer.Legalize(bytecode);
+
         effectReflection = globalContext.Reflection;
         usedHashSources = shaderLoader.Sources;
         return true;
