@@ -1,0 +1,133 @@
+# Builds the Crafter fork on GitHub-hosted runners and publishes the engine NuGet
+# packages, so a machine that cannot build Stride locally can still consume it.
+#
+# Per run it produces:
+#   - Actions artifact  stride-packages-<version>  (bin/packages/*.nupkg, needs auth to download)
+#   - Release asset     stride-packages.zip on the rolling prerelease tag `crafter-latest`,
+#     which gives a constant, tokenless download URL (the fork is public):
+#       https://github.com/delustra/stride/releases/download/crafter-latest/stride-packages.zip
+#
+# Consume it with: pwsh -File scripts/sync-stride-packages.ps1   (in CrafterDudes)
+
+name: Pack (Crafter)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version-suffix:
+        description: 'Prerelease suffix override, no leading dash. Empty = keep NuGetVersionSuffix from SharedAssemblyInfo.cs (i.e. -dev -> 4.4.1-dev, what the game references).'
+        default: ''
+        type: string
+  push:
+    branches:
+      - crafter
+    paths:
+      - 'sources/**'
+      - 'build/**'
+      - 'deps/**'
+      - '.github/workflows/pack-crafter.yml'
+
+concurrency:
+  group: pack-crafter-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write # create / refresh the crafter-latest release
+
+jobs:
+  Pack:
+    name: Pack
+    runs-on: windows-2025-vs2026
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: true
+          submodules: true
+          fetch-depth: 0 # full history + tags: the version machinery reads git metadata
+          fetch-tags: true
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      # -t:BuildPackages is release.yml's -t:Package minus the SignPackage phase, so no
+      # signing secrets are needed. StrideBuildPrerequisitesInstaller=false skips the
+      # Advanced Installer step (licensed tool); install-prerequisites.exe is only used by
+      # the launcher's install flow, not by a folder-feed consumer.
+      # --no-restore: Stride.build's targets restore their own solutions.
+      # The full Stride.slnx is built (not the runtime slnf), so GameStudio and the editor
+      # packages are packed too.
+      - name: Build packages
+        run: |
+          dotnet build build\Stride.build `
+            -t:BuildPackages `
+            --no-restore `
+            -m -nr:false `
+            -v:m -p:WarningLevel=0 `
+            -p:StridePlatforms=Windows `
+            -p:StrideGraphicsApiDependentBuildAll=true `
+            -p:StrideSign=false `
+            -p:StrideBuildPrerequisitesInstaller=false `
+            -p:StrideVersionSuffix=${{ inputs.version-suffix }} `
+            -p:StrideNativeBuildMode=Clang
+        env:
+          StrideDisableAssetCompilerExecServerProxy: true
+
+      - name: Detect version
+        id: version
+        shell: pwsh
+        run: |
+          # Match only Stride.Core.<version>.nupkg, never Stride.Core.Assets.<version>.nupkg
+          $pkgs = Get-ChildItem bin/packages -Filter '*.nupkg'
+          $core = $pkgs | Where-Object { $_.Name -match '^Stride\.Core\.(\d.*)\.nupkg$' } | Select-Object -First 1
+          if (-not $core) {
+            echo "::error::No Stride.Core.<version>.nupkg found in bin/packages"
+            exit 1
+          }
+          $version = [regex]::Match($core.Name, '^Stride\.Core\.(\d.*)\.nupkg$').Groups[1].Value
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "::notice title=Packed::$version ($($pkgs.Count) packages)"
+          echo "**Packed:** ``$version`` ($($pkgs.Count) packages)" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Zip packages
+        shell: pwsh
+        run: |
+          @(
+            "version=${{ steps.version.outputs.version }}"
+            "commit=${{ github.sha }}"
+            "ref=${{ github.ref_name }}"
+            "run=${{ github.run_number }} (${{ github.run_id }})"
+          ) | Set-Content bin/packages/BUILDINFO.txt -Encoding utf8
+
+          # Store-only: nupkgs are already deflated, so recompressing just burns minutes.
+          if (Get-Command 7z -ErrorAction SilentlyContinue) {
+            7z a -tzip -mx=0 stride-packages.zip ./bin/packages/*.nupkg ./bin/packages/BUILDINFO.txt | Out-Null
+          } else {
+            Compress-Archive -Path bin/packages/*.nupkg, bin/packages/BUILDINFO.txt `
+              -DestinationPath stride-packages.zip -CompressionLevel NoCompression
+          }
+          "{0:N1} MB" -f ((Get-Item stride-packages.zip).Length / 1MB)
+
+      - name: Upload NuGet packages (artifact)
+        uses: actions/upload-artifact@v7
+        with:
+          name: stride-packages-${{ steps.version.outputs.version }}
+          path: bin/packages/*.nupkg
+          if-no-files-found: error
+
+      # Rolling prerelease: the tag is deleted and recreated on this commit, so the asset
+      # URL stays constant and the local sync script needs no token and no API call.
+      - name: Publish to the crafter-latest release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release delete crafter-latest --yes --cleanup-tag || true
+          gh release create crafter-latest stride-packages.zip \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "Crafter engine packages ${{ steps.version.outputs.version }}" \
+            --notes "Stride \`${{ steps.version.outputs.version }}\` built from \`${{ github.ref_name }}\` @ \`${{ github.sha }}\` (run ${{ github.run_number }}).
+
+          Sync locally with \`pwsh -File scripts/sync-stride-packages.ps1\` in the CrafterDudes repo."
