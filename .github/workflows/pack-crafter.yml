@@ -1,21 +1,40 @@
-# Builds the Crafter fork on GitHub-hosted runners and publishes the engine NuGet
-# packages, so a machine that cannot build Stride locally can still consume it.
+# Builds this fork on GitHub-hosted runners and publishes the engine NuGet packages,
+# so a machine that cannot build Stride locally can still consume it.
 #
-# Per run it produces:
-#   - Actions artifact  stride-packages-<version>  (bin/packages/*.nupkg, needs auth to download)
-#   - Release asset     stride-packages.zip on the rolling prerelease tag `crafter-latest`,
-#     which gives a constant, tokenless download URL (the fork is public):
-#       https://github.com/delustra/stride/releases/download/crafter-latest/stride-packages.zip
+# Trigger it by hand: Actions -> "Pack (Crafter)" -> Run workflow -> keep the branch
+# dropdown on `crafter` and put the ref you actually want built into the `ref` input.
+# The dropdown only selects which branch's *workflow file* runs; `ref` selects what gets
+# checked out and packed, so master / a tag / a SHA are all buildable without copying
+# this file onto them.
 #
-# Consume it with: pwsh -File scripts/sync-stride-packages.ps1   (in CrafterDudes)
+# Per run it produces, for that ref:
+#   - Actions artifact  stride-packages-<ref>-<version>   (needs auth to download)
+#   - Release assets on the per-ref prerelease tag `engine-packages-<ref>`:
+#       stride-packages.zip   the nupkgs + manifest.json
+#       manifest.json         version / ref / sha / run, readable without downloading the zip
+#     Tokenless, constant URLs (this fork is public):
+#       https://github.com/delustra/stride/releases/download/engine-packages-<ref>/stride-packages.zip
+#       https://github.com/delustra/stride/releases/download/engine-packages-<ref>/manifest.json
+#
+# Consume it with the skill-stride-engine script:
+#   pwsh -File .agents/skills/skill-stride-engine/scripts/sync-stride-packages.ps1 -Ref <ref>
+#
+# NOTE: the full Stride.slnx is always built. Stride.Runtime.slnf looks like a cheaper
+# option but excludes Stride.Assets, Stride.Core.Assets, Stride.Core.Assets.CompilerApp and
+# Stride.GameStudio, so it cannot produce a package set the game builds against.
 
 name: Pack (Crafter)
+run-name: Pack ${{ inputs.ref || github.ref_name }}
 
 on:
   workflow_dispatch:
     inputs:
+      ref:
+        description: 'Branch, tag or SHA to build (e.g. crafter, master, v4.4.0, 81b17f0e2). Its SharedAssemblyInfo.cs decides the package version.'
+        default: 'crafter'
+        type: string
       version-suffix:
-        description: 'Prerelease suffix override, no leading dash. Empty = keep NuGetVersionSuffix from SharedAssemblyInfo.cs (i.e. -dev -> 4.4.1-dev, what the game references).'
+        description: 'Prerelease suffix override, no leading dash. Empty = keep NuGetVersionSuffix from the ref (crafter -> -dev -> 4.4.1-dev, which is what the game pins).'
         default: ''
         type: string
   push:
@@ -28,19 +47,34 @@ on:
       - '.github/workflows/pack-crafter.yml'
 
 concurrency:
-  group: pack-crafter-${{ github.ref }}
+  group: pack-crafter-${{ inputs.ref || github.ref_name }}
   cancel-in-progress: true
 
 permissions:
-  contents: write # create / refresh the crafter-latest release
+  contents: write # create / refresh the per-ref release
 
 jobs:
   Pack:
     name: Pack
     runs-on: windows-2025-vs2026
     steps:
+      # `inputs` is empty on push, so fall back to the pushed branch.
+      - name: Resolve target ref
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          REF="${{ inputs.ref }}"
+          if [ -z "$REF" ]; then REF="${{ github.ref_name }}"; fi
+          # Tag-safe slug: refs like feature/foo would otherwise nest the release tag.
+          SLUG=$(echo "$REF" | sed 's#[^A-Za-z0-9._-]#-#g')
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "tag=engine-packages-$SLUG" >> "$GITHUB_OUTPUT"
+          echo "::notice title=Target::$REF -> engine-packages-$SLUG"
+
       - uses: actions/checkout@v7
         with:
+          ref: ${{ steps.target.outputs.ref }}
           lfs: true
           submodules: true
           fetch-depth: 0 # full history + tags: the version machinery reads git metadata
@@ -50,13 +84,11 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      # -t:BuildPackages is release.yml's -t:Package minus the SignPackage phase, so no
+      # -t:BuildPackages is release.yml's -t:Package without the SignPackage phase, so no
       # signing secrets are needed. StrideBuildPrerequisitesInstaller=false skips the
       # Advanced Installer step (licensed tool); install-prerequisites.exe is only used by
       # the launcher's install flow, not by a folder-feed consumer.
       # --no-restore: Stride.build's targets restore their own solutions.
-      # The full Stride.slnx is built (not the runtime slnf), so GameStudio and the editor
-      # packages are packed too.
       - name: Build packages
         run: |
           dotnet build build\Stride.build `
@@ -73,8 +105,8 @@ jobs:
         env:
           StrideDisableAssetCompilerExecServerProxy: true
 
-      - name: Detect version
-        id: version
+      - name: Write manifest
+        id: manifest
         shell: pwsh
         run: |
           # Match only Stride.Core.<version>.nupkg, never Stride.Core.Assets.<version>.nupkg
@@ -85,25 +117,34 @@ jobs:
             exit 1
           }
           $version = [regex]::Match($core.Name, '^Stride\.Core\.(\d.*)\.nupkg$').Groups[1].Value
+
+          # github.sha is the dispatch ref's SHA (this file's branch), not the ref we packed.
+          $sha = (git rev-parse HEAD).Trim()
+
+          [ordered]@{
+            version     = $version
+            ref         = '${{ steps.target.outputs.ref }}'
+            sha         = $sha
+            tag         = '${{ steps.target.outputs.tag }}'
+            packages    = $pkgs.Count
+            run         = '${{ github.run_number }}'
+            runId       = '${{ github.run_id }}'
+            runUrl      = '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+            builtAtUtc  = (Get-Date).ToUniversalTime().ToString('o')
+          } | ConvertTo-Json | Set-Content bin/packages/manifest.json -Encoding utf8
+
           echo "version=$version" >> $env:GITHUB_OUTPUT
-          echo "::notice title=Packed::$version ($($pkgs.Count) packages)"
-          echo "**Packed:** ``$version`` ($($pkgs.Count) packages)" >> $env:GITHUB_STEP_SUMMARY
+          echo "::notice title=Packed::$version from ${{ steps.target.outputs.ref }} @ $sha ($($pkgs.Count) packages)"
+          echo "**Packed:** ``$version`` from ``${{ steps.target.outputs.ref }}`` @ ``$sha`` ($($pkgs.Count) packages)" >> $env:GITHUB_STEP_SUMMARY
 
       - name: Zip packages
         shell: pwsh
         run: |
-          @(
-            "version=${{ steps.version.outputs.version }}"
-            "commit=${{ github.sha }}"
-            "ref=${{ github.ref_name }}"
-            "run=${{ github.run_number }} (${{ github.run_id }})"
-          ) | Set-Content bin/packages/BUILDINFO.txt -Encoding utf8
-
           # Store-only: nupkgs are already deflated, so recompressing just burns minutes.
           if (Get-Command 7z -ErrorAction SilentlyContinue) {
-            7z a -tzip -mx=0 stride-packages.zip ./bin/packages/*.nupkg ./bin/packages/BUILDINFO.txt | Out-Null
+            7z a -tzip -mx=0 stride-packages.zip ./bin/packages/*.nupkg ./bin/packages/manifest.json | Out-Null
           } else {
-            Compress-Archive -Path bin/packages/*.nupkg, bin/packages/BUILDINFO.txt `
+            Compress-Archive -Path bin/packages/*.nupkg, bin/packages/manifest.json `
               -DestinationPath stride-packages.zip -CompressionLevel NoCompression
           }
           "{0:N1} MB" -f ((Get-Item stride-packages.zip).Length / 1MB)
@@ -111,23 +152,29 @@ jobs:
       - name: Upload NuGet packages (artifact)
         uses: actions/upload-artifact@v7
         with:
-          name: stride-packages-${{ steps.version.outputs.version }}
+          name: stride-packages-${{ steps.target.outputs.ref }}-${{ steps.manifest.outputs.version }}
           path: bin/packages/*.nupkg
           if-no-files-found: error
 
-      # Rolling prerelease: the tag is deleted and recreated on this commit, so the asset
-      # URL stays constant and the local sync script needs no token and no API call.
-      - name: Publish to the crafter-latest release
+      # Per-ref rolling prerelease: the tag is deleted and recreated on the packed commit, so
+      # the asset URLs stay constant per ref and builds of different refs never clobber each
+      # other. Anonymous download, so the local sync script needs no token.
+      - name: Publish release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release delete crafter-latest --yes --cleanup-tag || true
-          gh release create crafter-latest stride-packages.zip \
-            --target "$GITHUB_SHA" \
+          TAG='${{ steps.target.outputs.tag }}'
+          SHA=$(git rev-parse HEAD)
+          gh release delete "$TAG" --yes --cleanup-tag || true
+          gh release create "$TAG" stride-packages.zip bin/packages/manifest.json \
+            --target "$SHA" \
             --prerelease \
-            --title "Crafter engine packages ${{ steps.version.outputs.version }}" \
-            --notes "Stride \`${{ steps.version.outputs.version }}\` built from \`${{ github.ref_name }}\` @ \`${{ github.sha }}\` (run ${{ github.run_number }}).
+            --title "Engine packages ${{ steps.manifest.outputs.version }} (${{ steps.target.outputs.ref }})" \
+            --notes "Stride \`${{ steps.manifest.outputs.version }}\` built from \`${{ steps.target.outputs.ref }}\` @ \`$SHA\` (run ${{ github.run_number }}).
 
-          Sync locally with \`pwsh -File scripts/sync-stride-packages.ps1\` in the CrafterDudes repo."
+          Sync locally:
+          \`\`\`
+          pwsh -File .agents/skills/skill-stride-engine/scripts/sync-stride-packages.ps1 -Ref ${{ steps.target.outputs.ref }}
+          \`\`\`"
