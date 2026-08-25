@@ -84,6 +84,17 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      # SamplesVersion is committed as a pin (4.4.0); overwrite it with the engine version in the
+      # working copy only, so the content template packages ship whatever the ref's source says.
+      - name: Follow engine version for template packages
+        shell: pwsh
+        run: |
+          $f = 'sources/shared/SharedAssemblyInfo.cs'
+          $s = Get-Content $f -Raw
+          $v = [regex]::Match($s, 'MajorMinor = "(.*?)";').Groups[1].Value + '.' + [regex]::Match($s, 'Patch = "(.*?)";').Groups[1].Value
+          Set-Content $f -NoNewline -Value ($s -replace 'SamplesVersion = ".*?";', "SamplesVersion = ""$v"";")
+          echo "SamplesVersion -> $v"
+
       # -t:BuildPackages is release.yml's -t:Package without the SignPackage phase, so no
       # signing secrets are needed. StrideBuildPrerequisitesInstaller=false skips the
       # Advanced Installer step (licensed tool); install-prerequisites.exe is only used by
