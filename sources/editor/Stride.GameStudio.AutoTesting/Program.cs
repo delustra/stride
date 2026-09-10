@@ -17,6 +17,9 @@ namespace Stride.GameStudio.AutoTesting;
 /// </summary>
 internal static class Program
 {
+    [ThreadStatic]
+    private static bool inFirstChanceDiag;
+
     [STAThread]
     public static int Main(string[] osArgs)
     {
@@ -24,17 +27,6 @@ internal static class Program
         // so headless runners (no DXGI outputs) can still pick a hardware adapter or fall back
         // to WARP. Must be set before any Stride code runs.
         Environment.SetEnvironmentVariable("STRIDE_GRAPHICS_SOFTWARE_RENDERING", "1");
-
-        // Pre-accept the Stride 4.0 privacy policy: PrivacyPolicyHelper would otherwise pop a
-        // modal at startup with no one to click Accept on CI.
-        try
-        {
-            using var subkey = Microsoft.Win32.Registry.CurrentUser
-                .OpenSubKey(@"SOFTWARE\Stride\Agreements\", writable: true)
-                ?? Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Stride\Agreements\");
-            subkey?.SetValue("Stride-4.0", "True");
-        }
-        catch { /* best-effort — failure shows up as the privacy-policy hang */ }
 
         // Clear the "last startup-session load crashed" sticky flag — a previous AutoTesting run
         // that timed out / was killed leaves it on, which makes OpenInitialSession pop a "try
@@ -80,12 +72,35 @@ internal static class Program
         // capture every exception (including the swallowed ones) to a diag log.
         var diagPath = Path.Combine(Path.GetTempPath(), "autotest-diag.log");
         try { File.Delete(diagPath); } catch { }
-        void Diag(string msg) { try { File.AppendAllText(diagPath, $"{DateTime.UtcNow:HH:mm:ss.fff} {msg}\n"); } catch { } }
+        // GameStudio's own checkpoints (it appends): start this fixture's copy clean too.
+        try { File.Delete(Path.Combine(Path.GetTempPath(), "gs-diag.log")); } catch { }
+        // Serialized and share-tolerant so concurrent writes don't throw inside the first-chance handler
+        var diagLock = new object();
+        void Diag(string msg)
+        {
+            try
+            {
+                lock (diagLock)
+                {
+                    using var stream = new FileStream(diagPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                    using var writer = new StreamWriter(stream);
+                    writer.WriteLine($"{DateTime.UtcNow:HH:mm:ss.fff} {msg}");
+                }
+            }
+            catch { }
+        }
         Diag($"AutoTesting.Main entered. testDll={testDll} testName={testName} gsArgs=[{string.Join(", ", gsArgs)}]");
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
             Diag($"UnhandledException terminating={e.IsTerminating}: {e.ExceptionObject}");
+        // Re-entrancy guard: an exception during Diag would re-enter this handler and overflow the stack
         AppDomain.CurrentDomain.FirstChanceException += (_, e) =>
-            Diag($"FirstChance: {e.Exception.GetType().Name}: {e.Exception.Message}");
+        {
+            if (inFirstChanceDiag)
+                return;
+            inFirstChanceDiag = true;
+            try { Diag($"FirstChance: {e.Exception.GetType().Name}: {e.Exception.Message}"); }
+            finally { inFirstChanceDiag = false; }
+        };
         AppDomain.CurrentDomain.ProcessExit += (_, _) => Diag("ProcessExit");
 
         UITestHost? host = null;

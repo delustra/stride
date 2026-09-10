@@ -1,6 +1,7 @@
 <Project>
   <!--
-    Shared logic for Stride.Templates.Games / Stride.Templates.Games.Starters / Stride.Templates.Samples.
+    Shared logic for Stride.Templates.Games / Stride.Templates.Games.Starters / Stride.Templates.Samples /
+    Stride.Templates.AssetPacks.
     Imported by each per-package csproj; the csproj supplies PackageId / PackageTags /
     StrideSampleTemplate items, this file does everything else (version derivation,
     preprocess+aggregate pipeline, auto-pack-deploy, CI safeguards).
@@ -76,7 +77,7 @@
          from PackageVersion: content-versioned packages (Samples/Starters) follow StrideSamplesVersion,
          but their PackageReferences must name engine packages that actually exist. -->
     <PropertyGroup>
-      <_StrideTemplatesEngineVersion>$(StrideNuGetVersion)</_StrideTemplatesEngineVersion>
+      <_StrideTemplatesEngineVersion>$(StrideNuGetVersionWithoutMetadata)</_StrideTemplatesEngineVersion>
       <_StrideTemplatesEngineVersion Condition="'$(StrideWorktreeSuffix)' != '' And !$(_StrideTemplatesEngineVersion.EndsWith('$(StrideWorktreeSuffix)'))">$(_StrideTemplatesEngineVersion)$(StrideWorktreeSuffix)</_StrideTemplatesEngineVersion>
     </PropertyGroup>
   </Target>

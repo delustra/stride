@@ -18,9 +18,9 @@ on:
   # No paths filter here: the Gate job is a required check, so CI must report on every PR.
   # The changes job's filters skip the actual work for out-of-scope PRs.
   pull_request:
-    # labeled/unlabeled so a `ci-run-on-draft` label takes effect immediately on a draft —
-    # without them main.yml wouldn't re-evaluate its draft gate until the next push.
-    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+    # Label changes are handled by pr-label-suites.yml, not here (to avoid restarting
+    # many workflows on label change); a `ci-run-on-draft` label takes effect on the next push.
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
     inputs:
       ios:
@@ -125,6 +125,16 @@ jobs:
     with:
       build-type: Release
       graphics-api: Vulkan
+
+  # Null ships no renderer, so nothing else builds it and its stubs drift out of step with the shared
+  # signatures they implement. Compiling it here is what keeps that API honest.
+  Windows-Runtime-Null:
+    needs: changes
+    if: (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.runtime == 'true'
+    uses: ./.github/workflows/build-windows-runtime.yml
+    with:
+      build-type: Release
+      graphics-api: "Null"
 
   ### Full Windows build (engine + editor + assets + samples) ###
   Windows-Full:

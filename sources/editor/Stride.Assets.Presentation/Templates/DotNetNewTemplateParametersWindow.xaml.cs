@@ -6,13 +6,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using TextBox = System.Windows.Controls.TextBox;
 using Microsoft.TemplateEngine.Abstractions;
 using Stride.Assets.Templates;
 using Stride.Core.Presentation.Controls;
-using Stride.Data;
 using SDDialogResult = Stride.Core.Presentation.Services.DialogResult;
+using Stride.Core;
 
 namespace Stride.Assets.Presentation.Templates;
 
@@ -31,6 +30,9 @@ public partial class DotNetNewTemplateParametersWindow : ModalWindow
 {
     /// <summary>Per-parameter UI binding callback: returns the chosen value as a string (or null for "use default").</summary>
     private readonly List<(ITemplateParameter Param, Func<string?> Read)> bindings = new();
+
+    /// <summary>Asset-pack checkboxes, keyed by the pack template's identity.</summary>
+    private readonly List<(string Identity, CheckBox CheckBox)> assetPackChecks = new();
 
     /// <summary>
     /// Built-in cross-parameter coupling: HDR is meaningful only on graphics feature level 10.0+
@@ -53,7 +55,11 @@ public partial class DotNetNewTemplateParametersWindow : ModalWindow
     /// </summary>
     public Dictionary<string, string> Parameters { get; } = new();
 
-    public DotNetNewTemplateParametersWindow(ITemplateInfo template)
+    /// <summary>Identities of the asset-pack templates the user ticked (empty when none offered/selected).</summary>
+    public IReadOnlyList<string> SelectedAssetPacks =>
+        assetPackChecks.Where(t => t.CheckBox.IsChecked == true).Select(t => t.Identity).ToList();
+
+    public DotNetNewTemplateParametersWindow(ITemplateInfo template, IReadOnlyList<ITemplateInfo>? assetPacks = null)
     {
         ArgumentNullException.ThrowIfNull(template);
         TemplateName = template.Name ?? template.Identity;
@@ -66,6 +72,8 @@ public partial class DotNetNewTemplateParametersWindow : ModalWindow
             DescriptionTextBlock.Visibility = Visibility.Collapsed;
 
         BuildControls(template);
+        if (assetPacks is { Count: > 0 })
+            ParametersPanel.Children.Add(BuildAssetPacksRow(assetPacks));
     }
 
     private void BuildControls(ITemplateInfo template)
@@ -199,7 +207,7 @@ public partial class DotNetNewTemplateParametersWindow : ModalWindow
     /// <summary>
     /// Builds a CheckBox.Content payload for a multi-choice row. For the 'platforms' parameter,
     /// returns a horizontal stack with the OS icon (from the shared ImageDictionary, keyed by
-    /// <see cref="ConfigPlatforms"/> enum value) + the descriptive label. For everything else,
+    /// <see cref="PlatformType"/> enum value) + the descriptive label. For everything else,
     /// just the label string — WPF unboxes it as text.
     /// </summary>
     private object BuildChoiceContent(string paramName, string choiceKey, string? description)
@@ -207,28 +215,57 @@ public partial class DotNetNewTemplateParametersWindow : ModalWindow
         var label = string.IsNullOrEmpty(description) ? Humanize(choiceKey) : description;
         if (!string.Equals(paramName, "platforms", StringComparison.Ordinal))
             return label;
-        // dotnet new's lowercase choice keys vs ConfigPlatforms PascalCase enum names — explicit
+        // dotnet new's lowercase choice keys vs PlatformType PascalCase enum names — explicit
         // map both because Enum.TryParse(ignoreCase) can't reconcile "macos" → "macOS".
-        var platform = choiceKey switch
+        PlatformType? platform = choiceKey switch
         {
-            "windows" => ConfigPlatforms.Windows,
-            "linux"   => ConfigPlatforms.Linux,
-            "macos"   => ConfigPlatforms.macOS,
-            "ios"     => ConfigPlatforms.iOS,
-            "android" => ConfigPlatforms.Android,
-            _         => ConfigPlatforms.None,
+            "windows" => PlatformType.Windows,
+            "linux"   => PlatformType.Linux,
+            "macos"   => PlatformType.macOS,
+            "ios"     => PlatformType.iOS,
+            "android" => PlatformType.Android,
+            _         => null,
         };
-        if (platform == ConfigPlatforms.None)
+        if (!platform.HasValue)
             return label;
         // SetResourceReference resolves lazily against the full merged-dictionary chain (window
         // → app → themes), so it picks up the platform DrawingImage from ImageDictionary.xaml
         // regardless of which scope owns it. Falls back gracefully (no image) if missing.
         var stack = new StackPanel { Orientation = Orientation.Horizontal };
         var img = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 6, 0) };
-        img.SetResourceReference(Image.SourceProperty, platform);
+        img.SetResourceReference(Image.SourceProperty, platform.Value);
         stack.Children.Add(img);
         stack.Children.Add(new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center });
         return stack;
+    }
+
+    /// <summary>
+    /// Checkbox list for the optional asset packs (Building blocks, Materials, ...), one per
+    /// item template of the AssetPacks package. All unchecked by default; each selected pack is
+    /// instantiated into the generated game library after the main template.
+    /// </summary>
+    private UIElement BuildAssetPacksRow(IReadOnlyList<ITemplateInfo> assetPacks)
+    {
+        var row = new StackPanel { Margin = new Thickness(0, 6, 0, 6) };
+        row.Children.Add(new TextBlock
+        {
+            Text = "Asset packs — Ready-made asset collections added to your project",
+            Margin = new Thickness(0, 0, 0, 3),
+            TextWrapping = TextWrapping.Wrap,
+        });
+        foreach (var pack in assetPacks)
+        {
+            var label = string.IsNullOrEmpty(pack.Description) ? pack.Name : $"{pack.Name} — {pack.Description}";
+            var item = new CheckBox
+            {
+                Content = label,
+                IsChecked = false,
+                Margin = new Thickness(0, 2, 0, 2),
+            };
+            row.Children.Add(item);
+            assetPackChecks.Add((pack.Identity, item));
+        }
+        return row;
     }
 
     private static bool ParseBool(string? s) => bool.TryParse(s, out var b) && b;

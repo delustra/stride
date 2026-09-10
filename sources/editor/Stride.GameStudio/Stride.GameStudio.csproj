@@ -1,6 +1,5 @@
 <Project>
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), 'Directory.Build.props'))/sdk/Stride.Build.Sdk.Editor/Sdk/Sdk.props" />
-  <Import Project="..\Stride.PrivacyPolicy\Stride.PrivacyPolicy.projitems" Label="Shared" Condition="Exists('..\Stride.PrivacyPolicy\Stride.PrivacyPolicy.projitems')" />
   <Import Project="..\..\shared\Stride.Core.ShellHelper\Stride.Core.ShellHelper.projitems" Label="Shared" />
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -41,7 +40,6 @@
     <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="runtime" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime" PrivateAssets="all" />
     <PackageReference Include="ServiceWire" />
-    <PackageReference Include="Stride.Metrics" />
     <PackageReference Include="Mono.Cecil" />
     <PackageReference Include="SSH.NET" />
     <Reference Include="Stride.Core.AssemblyProcessor">
@@ -68,7 +66,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\engine\Stride.Debugger\Stride.Debugger.csproj" />
-    <ProjectReference Include="..\..\tools\Stride.ConnectionRouter\Stride.ConnectionRouter.csproj" />
+    <ProjectReference Include="..\..\tools\Stride.ConnectionRouter\Stride.ConnectionRouter.csproj" /> 
     <ProjectReference Include="..\..\tools\Stride.PackageInstall\Stride.PackageInstall.csproj">
       <Private>false</Private>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
@@ -81,7 +79,19 @@
     </ProjectReference>
     <ProjectReference Include="..\Stride.Assets.Presentation\Stride.Assets.Presentation.csproj" />
     <ProjectReference Include="..\..\tools\Stride.EffectCompilerServer\Stride.EffectCompilerServer.csproj" IncludeAssets="Build" />
-    <ProjectReference Include="..\Stride.Editor.CrashReport\Stride.Editor.CrashReport.csproj" />
+    <ProjectReference Include="..\..\crashreport\Stride.CrashReport\Stride.CrashReport.csproj" />
+    <!-- Sentry is used by the core's crash sender at send time, but it's PrivateAssets=all in the core (to keep
+         its Roslyn generator out of game builds) so it doesn't flow here. Reference it directly so Sentry.dll is
+         deployed for the in-process auto-send (STRIDE_CRASH_MODE=send); PrivateAssets=all keeps it from flowing onward.
+         The installed GameStudio resolves from the store, where a private package isn't: there the send falls
+         back to saving the report. -->
+    <PackageReference Include="Sentry" PrivateAssets="all" />
+    <!-- The out-of-process reporter, resolved from the store at crash time. Private=false emits the nuspec
+         <dependency> (so a Stride install pulls the reporter in) without copying its self-contained closure
+         into our bin. ReferenceOutputAssembly=false would suppress the dependency. -->
+    <ProjectReference Include="..\..\crashreport\Stride.CrashReporter\Stride.CrashReporter.csproj">
+      <Private>false</Private>
+    </ProjectReference>
     <!-- NuGet dependencies (and build-ordering triggers) on the three template packages, so a Stride
          install pulls them in. Private=false alone emits a content-only nuspec <dependency> (the templates
          produce no assembly to reference) — same idiom as the Stride.Core marker dep in
@@ -94,6 +104,14 @@
     </ProjectReference>
     <ProjectReference Include="..\..\templates\Stride.Templates.Samples\Stride.Templates.Samples.csproj">
       <Private>false</Private>
+    </ProjectReference>
+    <!-- Build-ordering only (no nuspec dependency): asset packs are fetched on demand by the New
+         Game dialog, not pulled at install time. The reference just makes a dev GameStudio build
+         produce the .nupkg so the packs show up locally. -->
+    <ProjectReference Include="..\..\templates\Stride.Templates.AssetPacks\Stride.Templates.AssetPacks.csproj">
+      <Private>false</Private>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

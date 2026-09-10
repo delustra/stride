@@ -168,14 +168,14 @@ namespace Stride.Engine
             get
             {
                 var consoleLogListener = logListener as ConsoleLogListener;
-                return consoleLogListener != null ? consoleLogListener.LogLevel : default(LogMessageType);
+                return consoleLogListener != null ? consoleLogListener.MinimumLevel : default(LogMessageType);
             }
             set
             {
                 var consoleLogListener = logListener as ConsoleLogListener;
                 if (consoleLogListener != null)
                 {
-                    consoleLogListener.LogLevel = value;
+                    consoleLogListener.MinimumLevel = value;
                 }
             }
         }
@@ -234,6 +234,7 @@ namespace Stride.Engine
 #if DEBUG
             // If DEBUG, default to initializing the graphics device in debug mode
             GraphicsDeviceManager.DeviceCreationFlags |= DeviceCreationFlags.Debug;
+            GlobalLogger.GetLogger("Game").Info("Debug-built engine: requesting graphics debug device");
 #endif
 
             AutoLoadDefaultSettings = true;
@@ -268,7 +269,7 @@ namespace Stride.Engine
                 {
                     Settings = Content.Load<GameSettings>(GameSettings.AssetUrl);
 
-                    renderingSettings = Settings.Configurations.Get<RenderingSettings>();
+                    renderingSettings = Settings.GetOrCreateConfiguration<RenderingSettings>();
 
                     // Set ShaderProfile even if AutoLoadDefaultSettings is false (because that is what shaders in effect logs are compiled against, even if actual instantiated profile is different)
                     if (renderingSettings.DefaultGraphicsProfile > 0)
@@ -306,7 +307,7 @@ namespace Stride.Engine
         {
             if (!AutoLoadDefaultSettings) return;
 
-            var renderingSettings = Settings?.Configurations.Get<RenderingSettings>();
+            var renderingSettings = Settings?.GetOrCreateConfiguration<RenderingSettings>();
 
             var deviceManager = (GraphicsDeviceManager)graphicsDeviceManager;
 
@@ -386,7 +387,7 @@ namespace Stride.Engine
             GameSystems.Add(EffectSystem);
 
             if (Settings != null)
-                Streaming.SetStreamingSettings(Settings.Configurations.Get<StreamingSettings>());
+                Streaming.SetStreamingSettings(Settings.GetOrCreateConfiguration<StreamingSettings>());
             GameSystems.Add(Streaming);
             GameSystems.Add(SceneSystem);
 

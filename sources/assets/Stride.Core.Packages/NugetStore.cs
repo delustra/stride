@@ -154,7 +154,7 @@ public partial class NugetStore : INugetDownloadProgress
     /// List of package Ids under which the main package is known. Usually just one entry, but
     /// we could have several in case there is a product name change.
     /// </summary>
-    public IReadOnlyCollection<string> MainPackageIds { get; } = ["Stride.GameStudio", "Xenko.GameStudio", "Xenko"];
+    public IReadOnlyCollection<string> MainPackageIds { get; } = ["Stride.GameStudio", "Stride.GameStudio.Avalonia.Desktop"];
 
     /// <summary>
     /// Package Id of the Visual Studio Integration plugin.
@@ -482,7 +482,7 @@ public partial class NugetStore : INugetDownloadProgress
     /// <remarks>It is safe to call it concurrently be cause we operations are done using the FileLock.</remarks>
     /// <param name="packageId">Name of package to install.</param>
     /// <param name="version">Version of package to install.</param>
-    public async Task<NugetLocalPackage?> InstallPackage(string packageId, PackageVersion version, IEnumerable<string> targetFrameworks, ProgressReport progress)
+    public async Task<NugetLocalPackage?> InstallPackage(string packageId, PackageVersion version, IEnumerable<string> targetFrameworks, ProgressReport? progress)
     {
         using (GetLocalRepositoryLock())
         {
@@ -964,8 +964,16 @@ public partial class NugetStore : INugetDownloadProgress
     /// dev-redirect stub's <c>build/&lt;Id&gt;.props</c>. Returns null if it isn't a resolvable stub.
     /// </summary>
     private static string? TryGetDevRedirectProjectDirectory(NugetLocalPackage package)
+        => TryGetDevRedirectProjectDirectory(package.Path, package.Id);
+
+    /// <summary>
+    /// The checkout project directory a dev-redirect stub installed at <paramref name="packagePath"/> stands for,
+    /// or null when the folder isn't such a stub (no <c>build/&lt;Id&gt;.props</c> naming a project directory).
+    /// The stub itself carries no assets: they, and the shader sources, live in that directory.
+    /// </summary>
+    public static string? TryGetDevRedirectProjectDirectory(string packagePath, string packageId)
     {
-        var propsPath = Path.Combine(package.Path, "build", $"{package.Id}.props");
+        var propsPath = Path.Combine(packagePath, "build", $"{packageId}.props");
         if (!File.Exists(propsPath))
             return null;
 
