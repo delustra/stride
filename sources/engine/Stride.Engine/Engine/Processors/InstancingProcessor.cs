@@ -15,9 +15,12 @@ namespace Stride.Engine.Processors
     public class InstancingProcessor : EntityProcessor<InstancingComponent, InstancingProcessor.InstancingData>, IEntityComponentRenderProcessor
     {
         private readonly Dictionary<RenderModel, RenderInstancing> modelInstancingMap = new Dictionary<RenderModel, RenderInstancing>();
+        // The model render processor of this processor's visibility group
         private ModelRenderProcessor modelRenderProcessor;
         // ComponentDatas in a list, so that Draw can split it into batches
         private readonly List<(InstancingComponent Component, InstancingData Data)> instancingList = new();
+        // Whether a component waits for its render model, which its group's model render processor has not made yet
+        private bool hasUnmappedComponents;
 
         public class InstancingData
         {
@@ -38,8 +41,56 @@ namespace Stride.Engine.Processors
 
         public override void Draw(RenderContext context)
         {
+            if (hasUnmappedComponents)
+                MapUnmappedComponents();
+
             // Process the components
             Dispatcher.ForBatched(instancingList.Count, new UpdateInstancingJob { Processor = this, Context = context });
+        }
+
+        private void MapUnmappedComponents()
+        {
+            hasUnmappedComponents = false;
+            foreach (var (_, data) in instancingList)
+            {
+                if (data.RenderModel == null && !TryMapRenderModel(data))
+                    hasUnmappedComponents = true;
+            }
+        }
+
+        /// <summary>
+        /// Maps the render model of <paramref name="data"/>'s model component, as the model render processor of this
+        /// processor's visibility group made it, to the component's instancing.
+        /// </summary>
+        /// <returns><c>false</c> when that render model does not exist yet.</returns>
+        private bool TryMapRenderModel(InstancingData data)
+        {
+            if (data.ModelComponent == null)
+                return true;
+
+            var processor = GetModelRenderProcessor();
+            if (processor == null || !processor.RenderModels.TryGetValue(data.ModelComponent, out var renderModel))
+                return false;
+
+            modelInstancingMap[renderModel] = data.RenderInstancing;
+            data.RenderModel = renderModel;
+            return true;
+        }
+
+        private ModelRenderProcessor GetModelRenderProcessor()
+        {
+            if (modelRenderProcessor == null)
+            {
+                foreach (var processor in EntityManager.Processors)
+                {
+                    if (processor is ModelRenderProcessor candidate && candidate.VisibilityGroup == VisibilityGroup)
+                    {
+                        modelRenderProcessor = candidate;
+                        break;
+                    }
+                }
+            }
+            return modelRenderProcessor;
         }
 
         private readonly struct UpdateInstancingJob : Dispatcher.IBatchJob
@@ -186,11 +237,8 @@ namespace Stride.Engine.Processors
             data.TransformComponent = component.Entity.Transform;
             data.ModelComponent = component.Entity.Get<ModelComponent>();
 
-            if (data.ModelComponent != null && modelRenderProcessor.RenderModels.TryGetValue(data.ModelComponent, out var renderModel))
-            {
-                modelInstancingMap[renderModel] = data.RenderInstancing;
-                data.RenderModel = renderModel;
-            }
+            if (!TryMapRenderModel(data))
+                hasUnmappedComponents = true;
         }
 
         protected override void OnEntityComponentRemoved(Entity entity, [NotNull] InstancingComponent component, [NotNull] InstancingData data)
@@ -225,10 +273,10 @@ namespace Stride.Engine.Processors
             base.OnSystemAdd();
             VisibilityGroup.Tags.Set(InstancingRenderFeature.ModelToInstancingMap, modelInstancingMap);
 
-            modelRenderProcessor = EntityManager.GetProcessor<ModelRenderProcessor>();
-            if (modelRenderProcessor == null)
+            // A scene instance makes the model render processor of each visibility group itself, possibly after this one
+            if (GetModelRenderProcessor() == null && EntityManager is not SceneInstance)
             {
-                modelRenderProcessor = new ModelRenderProcessor();
+                modelRenderProcessor = new ModelRenderProcessor { VisibilityGroup = VisibilityGroup };
                 EntityManager.Processors.Add(modelRenderProcessor);
             }
         }
@@ -236,6 +284,7 @@ namespace Stride.Engine.Processors
         protected internal override void OnSystemRemove()
         {
             VisibilityGroup.Tags.Remove(InstancingRenderFeature.ModelToInstancingMap);
+            modelRenderProcessor = null;
             base.OnSystemRemove();
         }
     }
