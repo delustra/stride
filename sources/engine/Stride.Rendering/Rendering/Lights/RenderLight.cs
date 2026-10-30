@@ -14,6 +14,11 @@ namespace Stride.Rendering.Lights
         public float Intensity;
 
         /// <summary>
+        /// The render group of this light; a view takes the light only when the group is in its <see cref="RenderView.CullingMask"/>.
+        /// </summary>
+        public RenderGroup RenderGroup;
+
+        /// <summary>
         /// Gets the light position in World-Space (computed by the `LightProcessor`) (readonly field). See remarks.
         /// </summary>
         /// <value>The position.</value>

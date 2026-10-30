@@ -7,6 +7,7 @@ using Stride.Core.Annotations;
 using Stride.Core.Mathematics;
 using Stride.Engine.Design;
 using Stride.Graphics;
+using Stride.Rendering;
 using Stride.Rendering.Lights;
 
 namespace Stride.Engine
@@ -51,5 +52,15 @@ namespace Stride.Engine
         [DataMember(30)]
         [DefaultValue(1.0f)]
         public float Intensity { get; set; }
+
+        /// <summary>
+        /// Gets or sets the render group of the light.
+        /// </summary>
+        /// <value>The render group of the light.</value>
+        /// <userdoc>The render group of the light. A camera lights what it draws only with the lights of the render groups it renders (see the camera renderer's render mask).</userdoc>
+        [DataMember(40)]
+        [DefaultValue(RenderGroup.Group0)]
+        [Display("Render group")]
+        public RenderGroup RenderGroup { get; set; }
     }
 }
