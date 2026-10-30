@@ -1,7 +1,9 @@
 # Builds this fork on GitHub-hosted runners and publishes the engine NuGet packages,
 # so a machine that cannot build Stride locally can still consume it.
 #
-# Trigger it by hand: Actions -> "Pack (Crafter)" -> Run workflow -> keep the branch
+# It runs only when started by hand, never on a push:
+#   gh workflow run pack-crafter.yml -R delustra/stride --ref crafter -f ref=<ref>
+# or Actions -> "Pack (Crafter)" -> Run workflow -> keep the branch
 # dropdown on `crafter` and put the ref you actually want built into the `ref` input.
 # The dropdown only selects which branch's *workflow file* runs; `ref` selects what gets
 # checked out and packed, so master / a tag / a SHA are all buildable without copying
@@ -28,7 +30,7 @@
 # Stride.GameStudio, so it cannot produce a package set the game builds against.
 
 name: Pack (Crafter)
-run-name: Pack ${{ inputs.ref || github.ref_name }}
+run-name: Pack ${{ inputs.ref }}
 
 on:
   workflow_dispatch:
@@ -41,17 +43,9 @@ on:
         description: 'Stem of the prerelease suffix, no leading dash; the run number is appended (dev -> 4.5.0-dev.42, which the game floats to).'
         default: 'dev'
         type: string
-  push:
-    branches:
-      - crafter
-    paths:
-      - 'sources/**'
-      - 'build/**'
-      - 'deps/**'
-      - '.github/workflows/pack-crafter.yml'
 
 concurrency:
-  group: pack-crafter-${{ inputs.ref || github.ref_name }}
+  group: pack-crafter-${{ inputs.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -62,14 +56,16 @@ jobs:
     name: Pack
     runs-on: windows-2025-vs2026
     steps:
-      # `inputs` is empty on push, so fall back to the pushed branch.
       - name: Resolve target ref
         id: target
         shell: bash
         run: |
           set -euo pipefail
           REF="${{ inputs.ref }}"
-          if [ -z "$REF" ]; then REF="${{ github.ref_name }}"; fi
+          if [ -z "$REF" ]; then
+            echo "::error::The ref input is empty"
+            exit 1
+          fi
           # Tag-safe slug: refs like feature/foo would otherwise nest the release tag.
           SLUG=$(echo "$REF" | sed 's#[^A-Za-z0-9._-]#-#g')
           echo "ref=$REF" >> "$GITHUB_OUTPUT"
@@ -89,13 +85,15 @@ jobs:
           dotnet-version: 10.0.x
 
       # Package builds take the prerelease suffix from SharedAssemblyInfo.cs (through its generated
-      # overlay); it is rewritten in the working copy only. `inputs` is empty on push, hence the default.
+      # overlay); it is rewritten in the working copy only.
       - name: Stamp the run number into the version
         shell: pwsh
         run: |
           $f = 'sources/shared/SharedAssemblyInfo.cs'
           $s = Get-Content $f -Raw
-          $suffix = '-${{ inputs.version-suffix || 'dev' }}.${{ github.run_number }}'
+          $stem = '${{ inputs.version-suffix }}'
+          if (-not $stem) { $stem = 'dev' }
+          $suffix = "-$stem.${{ github.run_number }}"
           if ($s -notmatch 'NuGetVersionSuffix = ".*?";') {
             echo "::error::No NuGetVersionSuffix line in $f"
             exit 1
