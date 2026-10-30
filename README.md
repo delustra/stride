@@ -27,7 +27,7 @@ them.
 | Bepu physics budget | `fix/bepu-drop-step-debt` | [#3683](https://github.com/stride3d/stride/pull/3683) | Bepu drops the time beyond its step budget instead of replaying it later; `PhysicsBudget` replaces `MaxStepPerFrame` |
 | Collider change in place | `fix/compound-change-in-place` | [#3532](https://github.com/stride3d/stride/pull/3532) | A collider change reshapes a live collidable in place and moves its constraints with the center of mass |
 | BepuPhysics 2.5.0-beta.33 | `chore/bepu-2.5.0-beta.33` | from [#3512](https://github.com/stride3d/stride/pull/3512) (5d68601) | The BepuPhysics package pin, upstream pins beta.28; goes when #3512 is merged in or upstream bumps it |
-| Instancing by visibility group | `fix/instancing-own-visibility-group` | not offered yet | `InstancingProcessor` and `LightShaftProcessor` take the `ModelRenderProcessor` / `LightProcessor` of their own visibility group, so a second compositor's instanced models draw their instances |
+| Instancing by visibility group | `fix/instancing-own-visibility-group` | issue [#3765](https://github.com/stride3d/stride/issues/3765), PR not opened yet | `InstancingProcessor` and `LightShaftProcessor` take the `ModelRenderProcessor` / `LightProcessor` of their own visibility group, so a second compositor's instanced models draw their instances |
 | Pack (Crafter) workflow | `crafter` only | fork-only | `.github/workflows/pack-crafter.yml` builds a ref's NuGet packages as `<MajorMinor.Patch>-dev.<run>` and publishes them to the `engine-packages-<ref>` release |
 
 Pending: [#3512](https://github.com/stride3d/stride/pull/3512) (Heightfield physics and basic rendering),
