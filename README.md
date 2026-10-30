@@ -15,6 +15,24 @@
 [![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/stride3d/stride/blob/master/LICENSE.md)
 [![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-2.0-4baaaa.svg)](.github/CODE_OF_CONDUCT.md)
 
+# About this fork (delustra/stride, branch `crafter`)
+
+This fork is the engine of CrafterDudes. The `crafter` branch is upstream `master` with the changes
+below merged in, each from a branch of its own. `master` mirrors stride3d/stride and carries none of
+them.
+
+| Change | Branch | Upstream | What it does |
+| --- | --- | --- | --- |
+| Lights by render group | `feat/light-render-group` | not offered yet; answers [#501](https://github.com/stride3d/stride/issues/501) | `LightComponent.RenderGroup`; a view takes only the lights of the groups in its culling mask (`SceneCameraRenderer.RenderMask`), shadows included |
+| Bepu physics budget | `fix/bepu-drop-step-debt` | [#3683](https://github.com/stride3d/stride/pull/3683) | Bepu drops the time beyond its step budget instead of replaying it later; `PhysicsBudget` replaces `MaxStepPerFrame` |
+| Pack (Crafter) workflow | `crafter` only | fork-only | `.github/workflows/pack-crafter.yml` builds a ref's NuGet packages as `<MajorMinor.Patch>-dev.<run>` and publishes them to the `engine-packages-<ref>` release |
+
+Pending: [#3512](https://github.com/stride3d/stride/pull/3512) (Heightfield physics and basic rendering),
+merged once it is rebased onto upstream's move of the plugins under `sources/plugins`.
+
+To update `crafter`, merge upstream `master` into it, then merge again each change's branch that moved.
+When a change lands upstream, its row goes. Every merge into `crafter` keeps this table in step.
+
 # Welcome to the Stride Game Engine
 
 Stride is an open-source C# game engine designed for realistic rendering and VR. Highly modular, it aims to give game makers more flexibility in their development. Stride comes with an editor, [Game Studio](https://doc.stride3d.net/latest/en/manual/game-studio/index.html), which allows you to create and manage the content of your games or applications visually and intuitively. To learn more about Stride, visit [stride3d.net](https://stride3d.net/).
