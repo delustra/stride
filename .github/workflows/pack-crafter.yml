@@ -106,6 +106,9 @@ jobs:
       # Advanced Installer step (licensed tool); install-prerequisites.exe is only used by
       # the launcher's install flow, not by a folder-feed consumer.
       # --no-restore: package.proj's targets restore their own solutions.
+      # StridePlatforms=Windows;Linux (as release.yml's platform-linux does): the Windows
+      # runner cross-compiles the Linux natives (libstrideaudio.so, ...) with the bundled
+      # clang/lld, so the game can also run and compile its assets on Linux.
       - name: Build packages
         run: |
           dotnet build build\package.proj `
@@ -113,7 +116,7 @@ jobs:
             --no-restore `
             -m -nr:false `
             -v:m -p:WarningLevel=0 `
-            -p:StridePlatforms=Windows `
+            -p:StridePlatforms=Windows%3BLinux `
             -p:StrideGraphicsApiDependentBuildAll=true `
             -p:StrideSign=false `
             -p:StrideBuildPrerequisitesInstaller=false `
