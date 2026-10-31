@@ -12,9 +12,9 @@ namespace Stride.Rendering
 {
     /// <summary>
     /// Builds the effect a <see cref="MeshRenderFeature"/> draws with while a mesh's real effect is still compiling
-    /// or failed to compile. It keeps the mesh's diffuse texture or color with Lambert shading and its skinning,
-    /// and drops every other material feature, so all meshes share a few permutations that are usually already
-    /// compiled and never depend on user shaders.
+    /// or failed to compile. It keeps the mesh's diffuse texture or color with Lambert shading, its skinning and its
+    /// instancing, and drops every other material feature, so all meshes share a few permutations that are usually
+    /// already compiled and never depend on user shaders.
     /// </summary>
     public class MeshFallbackEffects
     {
@@ -52,12 +52,19 @@ namespace Stride.Rendering
         /// </summary>
         public CompilerParameters CreateCompilerParameters(RenderMesh renderMesh)
         {
-            var hasDiffuseMap = renderMesh.MaterialPass.Parameters.ContainsKey(MaterialKeys.DiffuseMap);
-            var fallbackMaterial = hasDiffuseMap ? textureMaterial : colorMaterial;
+            return CreateCompilerParameters(renderMesh, null);
+        }
 
-            // High priority
-            var compilerParameters = new CompilerParameters();
-            compilerParameters.EffectParameters.TaskPriority = -1;
+        /// <summary>
+        /// Creates the compiler parameters of the fallback effect for <paramref name="renderMesh"/> drawn by
+        /// <paramref name="renderEffect"/>: the mesh's diffuse map or color and its skinning, and the instancing
+        /// <paramref name="renderEffect"/> was validated with, so an instanced mesh keeps its instances while its real
+        /// effect compiles.
+        /// </summary>
+        public CompilerParameters CreateCompilerParameters(RenderMesh renderMesh, RenderEffect renderEffect)
+        {
+            var hasDiffuseMap = renderMesh.MaterialPass.Parameters.ContainsKey(MaterialKeys.DiffuseMap);
+            var compilerParameters = CreateCompilerParameters(hasDiffuseMap);
 
             // Support skinning
             if (renderMesh.Mesh.Skinning != null && renderMesh.Mesh.Skinning.Bones.Length <= MaxSkinningBones)
@@ -69,12 +76,52 @@ namespace Stride.Rendering
                 compilerParameters.Set(MaterialKeys.SkinningMaxBones, MaxSkinningBones);
             }
 
+            // Support instancing: the keys InstancingRenderFeature validated the real effect with
+            if (renderEffect != null)
+            {
+                var validated = renderEffect.EffectValidator.EffectValues;
+                for (int i = 0; i < validated.Count; i++)
+                {
+                    var entry = validated.Items[i];
+                    if (entry.Key == StrideEffectBaseKeys.HasInstancing)
+                        compilerParameters.Set(StrideEffectBaseKeys.HasInstancing, (bool)entry.Value);
+                    else if (entry.Key == StrideEffectBaseKeys.ModelTransformUsage)
+                        compilerParameters.Set(StrideEffectBaseKeys.ModelTransformUsage, (int)entry.Value);
+                }
+            }
+
+            return compilerParameters;
+        }
+
+        /// <summary>
+        /// Creates the compiler parameters of a fallback effect without a mesh: a diffuse map or a color, Lambert
+        /// shading, a constant white light, and the instancing permutation when <paramref name="hasInstancing"/>.
+        /// Loading an effect with them ahead of its first draw spares that draw the wait for the fallback's own
+        /// compilation.
+        /// </summary>
+        /// <param name="hasDiffuseMap">Whether the fallback draws a diffuse map, or a color.</param>
+        /// <param name="hasInstancing">Whether the fallback draws instances.</param>
+        /// <param name="modelTransformUsage">With instancing, the <c>ModelTransformUsage</c> of the instances.</param>
+        public CompilerParameters CreateCompilerParameters(bool hasDiffuseMap, bool hasInstancing = false, int modelTransformUsage = 0)
+        {
+            var fallbackMaterial = hasDiffuseMap ? textureMaterial : colorMaterial;
+
+            // High priority
+            var compilerParameters = new CompilerParameters();
+            compilerParameters.EffectParameters.TaskPriority = -1;
+
             // Set material permutations
             compilerParameters.Set(MaterialKeys.PixelStageSurfaceShaders, fallbackMaterial.Passes[0].Parameters.Get(MaterialKeys.PixelStageSurfaceShaders));
             compilerParameters.Set(MaterialKeys.PixelStageStreamInitializer, fallbackMaterial.Passes[0].Parameters.Get(MaterialKeys.PixelStageStreamInitializer));
 
             // Set lighting permutations (use custom white light, since this effect will not be processed by the lighting render feature)
             compilerParameters.Set(LightingKeys.EnvironmentLights, new ShaderSourceCollection { new ShaderClassSource("LightConstantWhite") });
+
+            if (hasInstancing)
+            {
+                compilerParameters.Set(StrideEffectBaseKeys.ModelTransformUsage, modelTransformUsage);
+                compilerParameters.Set(StrideEffectBaseKeys.HasInstancing, true);
+            }
 
             return compilerParameters;
         }
@@ -98,7 +145,7 @@ namespace Stride.Rendering
             {
                 var renderMesh = (RenderMesh)renderObject;
 
-                var compilerParameters = CreateCompilerParameters(renderMesh);
+                var compilerParameters = CreateCompilerParameters(renderMesh, renderEffect);
                 customizeParameters?.Invoke(renderEffect, renderEffectState, compilerParameters);
 
                 if (renderEffectState == RenderEffectState.Error)
