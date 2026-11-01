@@ -64,17 +64,14 @@ namespace Stride.Rendering
         public CompilerParameters CreateCompilerParameters(RenderMesh renderMesh, RenderEffect renderEffect)
         {
             var hasDiffuseMap = renderMesh.MaterialPass.Parameters.ContainsKey(MaterialKeys.DiffuseMap);
-            var compilerParameters = CreateCompilerParameters(hasDiffuseMap);
 
             // Support skinning
-            if (renderMesh.Mesh.Skinning != null && renderMesh.Mesh.Skinning.Bones.Length <= MaxSkinningBones)
-            {
-                compilerParameters.Set(MaterialKeys.HasSkinningPosition, renderMesh.Mesh.Parameters.Get(MaterialKeys.HasSkinningPosition));
-                compilerParameters.Set(MaterialKeys.HasSkinningNormal, renderMesh.Mesh.Parameters.Get(MaterialKeys.HasSkinningNormal));
-                compilerParameters.Set(MaterialKeys.HasSkinningTangent, renderMesh.Mesh.Parameters.Get(MaterialKeys.HasSkinningTangent));
-
-                compilerParameters.Set(MaterialKeys.SkinningMaxBones, MaxSkinningBones);
-            }
+            var skinned = renderMesh.Mesh.Skinning != null && renderMesh.Mesh.Skinning.Bones.Length <= MaxSkinningBones;
+            var meshParameters = renderMesh.Mesh.Parameters;
+            var compilerParameters = CreateCompilerParameters(hasDiffuseMap, hasInstancing: false, modelTransformUsage: 0,
+                hasSkinningPosition: skinned && meshParameters.Get(MaterialKeys.HasSkinningPosition),
+                hasSkinningNormal: skinned && meshParameters.Get(MaterialKeys.HasSkinningNormal),
+                hasSkinningTangent: skinned && meshParameters.Get(MaterialKeys.HasSkinningTangent));
 
             // Support instancing: the keys InstancingRenderFeature validated the real effect with
             if (renderEffect != null)
@@ -104,6 +101,22 @@ namespace Stride.Rendering
         /// <param name="modelTransformUsage">With instancing, the <c>ModelTransformUsage</c> of the instances.</param>
         public CompilerParameters CreateCompilerParameters(bool hasDiffuseMap, bool hasInstancing = false, int modelTransformUsage = 0)
         {
+            return CreateCompilerParameters(hasDiffuseMap, hasInstancing, modelTransformUsage, hasSkinningPosition: false, hasSkinningNormal: false, hasSkinningTangent: false);
+        }
+
+        /// <summary>
+        /// Creates the compiler parameters of a fallback effect without a mesh, with the skinning permutation of the
+        /// mesh it will stand in for (the keys a skinned mesh carries in its parameters, up to <see cref="MaxSkinningBones"/>
+        /// bones): a game loads the skinned fallbacks ahead of their first draw as it loads the others.
+        /// </summary>
+        /// <param name="hasDiffuseMap">Whether the fallback draws a diffuse map, or a color.</param>
+        /// <param name="hasInstancing">Whether the fallback draws instances.</param>
+        /// <param name="modelTransformUsage">With instancing, the <c>ModelTransformUsage</c> of the instances.</param>
+        /// <param name="hasSkinningPosition">Whether the mesh skins its positions.</param>
+        /// <param name="hasSkinningNormal">Whether the mesh skins its normals.</param>
+        /// <param name="hasSkinningTangent">Whether the mesh skins its tangents.</param>
+        public CompilerParameters CreateCompilerParameters(bool hasDiffuseMap, bool hasInstancing, int modelTransformUsage, bool hasSkinningPosition, bool hasSkinningNormal, bool hasSkinningTangent)
+        {
             var fallbackMaterial = hasDiffuseMap ? textureMaterial : colorMaterial;
 
             // High priority
@@ -116,6 +129,14 @@ namespace Stride.Rendering
 
             // Set lighting permutations (use custom white light, since this effect will not be processed by the lighting render feature)
             compilerParameters.Set(LightingKeys.EnvironmentLights, new ShaderSourceCollection { new ShaderClassSource("LightConstantWhite") });
+
+            if (hasSkinningPosition || hasSkinningNormal || hasSkinningTangent)
+            {
+                compilerParameters.Set(MaterialKeys.HasSkinningPosition, hasSkinningPosition);
+                compilerParameters.Set(MaterialKeys.HasSkinningNormal, hasSkinningNormal);
+                compilerParameters.Set(MaterialKeys.HasSkinningTangent, hasSkinningTangent);
+                compilerParameters.Set(MaterialKeys.SkinningMaxBones, MaxSkinningBones);
+            }
 
             if (hasInstancing)
             {
