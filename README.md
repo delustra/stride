@@ -26,7 +26,7 @@ them.
 | Lights by render group | `feat/light-render-group` | not offered yet; answers [#501](https://github.com/stride3d/stride/issues/501) | `LightComponent.RenderGroup`; a view takes only the lights of the groups in its culling mask (`SceneCameraRenderer.RenderMask`), shadows included |
 | Bepu physics budget | `fix/bepu-drop-step-debt` | [#3683](https://github.com/stride3d/stride/pull/3683) | Bepu drops the time beyond its step budget instead of replaying it later; `PhysicsBudget` replaces `MaxStepPerFrame` |
 | Collider change in place | `fix/compound-change-in-place` | [#3532](https://github.com/stride3d/stride/pull/3532) | A collider change reshapes a live collidable in place and moves its constraints with the center of mass |
-| BepuPhysics 2.5.0-beta.33 | `chore/bepu-2.5.0-beta.33` | from [#3512](https://github.com/stride3d/stride/pull/3512) (5d68601) | The BepuPhysics package pin, upstream pins beta.28; goes when #3512 is merged in or upstream bumps it |
+| BepuPhysics 2.5.0-beta.33 | `chore/bepu-2.5.0-beta.33` | [#3757](https://github.com/stride3d/stride/pull/3757) | The BepuPhysics package pin, upstream pins beta.28; #3757 makes the same one-line bump, stacked on [#3756](https://github.com/stride3d/stride/pull/3756) |
 | Instancing by visibility group | `fix/instancing-own-visibility-group` | issue [#3765](https://github.com/stride3d/stride/issues/3765), PR not opened yet | `InstancingProcessor` and `LightShaftProcessor` take the `ModelRenderProcessor` / `LightProcessor` of their own visibility group, so a second compositor's instanced models draw their instances |
 | Fallback effects keep instancing and load ahead | `feat/fallback-instancing-keys` | [#3779](https://github.com/stride3d/stride/pull/3779) | `MeshFallbackEffects` carries the instancing keys of the effect it stands in for, so an instanced mesh keeps its instances while its effect compiles, and builds the parameters of a fallback without a mesh, instanced or skinned, so a game loads every fallback ahead of its first draw |
 | Lighting sets | `feat/lighting-sets` | not offered yet | `ForwardLightingRenderFeature` compiles an effect for the lights of the views that draw its object, not for the union of every view's lights, so a compositor whose views have lights of their own does not compile every material again; `LightingSetsTest` |
@@ -34,8 +34,8 @@ them.
 | Game Studio for win-arm64 | `fix/editor-arm64-build` | [#3777](https://github.com/stride3d/stride/pull/3777) | `Stride.Editor.Wpf` and `Stride.Assets.Presentation.Wpf` no longer pin `RuntimeIdentifier=win-x64`, like the other editor libraries, so `Stride.GameStudio` builds with `-p:RuntimeIdentifier=win-arm64` |
 | Pack (Crafter) workflow | `crafter` only | fork-only | `.github/workflows/pack-crafter.yml` builds a ref's NuGet packages for Windows and Linux as `<MajorMinor.Patch>-dev.<run>` and publishes them to the `engine-packages-<ref>` release |
 
-Pending: [#3512](https://github.com/stride3d/stride/pull/3512) (Heightfield physics and basic rendering),
-merged once it is rebased onto upstream's move of the plugins under `sources/plugins`.
+Pending: [#3758](https://github.com/stride3d/stride/pull/3758) (Heightfield), the top of the stack
+[#3750](https://github.com/stride3d/stride/pull/3750)–#3758 that replaces the closed [#3512](https://github.com/stride3d/stride/pull/3512).
 
 To update `crafter`, merge upstream `master` into it, then merge again each change's branch that moved.
 When a change lands upstream, its row goes. Every merge into `crafter` keeps this table in step.
