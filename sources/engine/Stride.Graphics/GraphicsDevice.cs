@@ -249,6 +249,37 @@ namespace Stride.Graphics
         /// </summary>
         protected partial void DestroyPlatformDevice();
 
+        /// <summary>
+        ///   Adds the pipelines of an earlier run to the device's pipeline cache, as <see cref="GetPipelineCacheData"/>
+        ///   returned them, so the driver does not build those pipelines again when their pipeline states are created.
+        ///   Data of another device or driver is ignored. Call it before the first pipeline state is created; it does
+        ///   nothing on a platform whose driver keeps its own cache.
+        /// </summary>
+        /// <param name="data">The data of an earlier run, or empty.</param>
+        public void MergePipelineCache(byte[] data)
+        {
+            if (data == null || data.Length == 0)
+                return;
+
+            MergePipelineCachePlatform(data);
+        }
+
+        /// <summary>
+        ///   Gets the device's pipeline cache as the driver serializes it, the pipelines built so far, to keep for
+        ///   <see cref="MergePipelineCache"/> in a later run.
+        /// </summary>
+        /// <returns>The serialized pipeline cache; empty on a platform whose driver keeps its own cache.</returns>
+        public byte[] GetPipelineCacheData()
+        {
+            byte[] data = null;
+            GetPipelineCacheDataPlatform(ref data);
+            return data ?? Array.Empty<byte>();
+        }
+
+        partial void MergePipelineCachePlatform(byte[] data);
+
+        partial void GetPipelineCacheDataPlatform(ref byte[] data);
+
 
         /// <summary>
         ///   Occurs while this component is disposing but before it is disposed.
