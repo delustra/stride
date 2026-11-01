@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net) and Silicon Studio Corp. (https://www.siliconstudio.co.jp)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
+using Stride.Core.Diagnostics;
 using Stride.Core.ReferenceCounting;
 
 namespace Stride.Graphics;
@@ -21,6 +22,12 @@ public partial class PipelineState : GraphicsResourceBase
 {
     // TODO: Unused? Vulkan backend has 'inputBindingCount', but does not write to this property.
     public int InputBindingCount { get; private set; }
+
+    /// <summary>
+    ///   Profiles the creation of a pipeline state object that the device has not cached: with Vulkan, the driver's
+    ///   build of the pipeline, on the thread that creates it.
+    /// </summary>
+    public static readonly ProfilingKey CreateProfilingKey = new ProfilingKey("PipelineState.Create");
 
 
     /// <summary>
@@ -45,7 +52,8 @@ public partial class PipelineState : GraphicsResourceBase
             }
             else
             {
-                pipelineState = new PipelineState(graphicsDevice, pipelineStateDescription);
+                using (Profiler.Begin(CreateProfilingKey))
+                    pipelineState = new PipelineState(graphicsDevice, pipelineStateDescription);
                 graphicsDevice.CachedPipelineStates.Add(hashedState, pipelineState);
             }
         }

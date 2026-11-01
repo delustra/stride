@@ -50,6 +50,12 @@ namespace Stride.Graphics
 
         private VkDevice nativeDevice;
         private VkDeviceApi nativeDeviceApi;
+
+        /// <summary>
+        ///   The pipeline cache every pipeline of the device is built through; <see cref="MergePipelineCache"/> adds
+        ///   the pipelines of an earlier run to it.
+        /// </summary>
+        internal VkPipelineCache NativePipelineCache;
         internal VkQueue NativeCommandQueue;
         internal object QueueLock = new object();
 
@@ -667,6 +673,9 @@ namespace Stride.Graphics
 
             nativeDeviceApi = new VkDeviceApi(NativeInstanceApi, in nativeDevice);
 
+            var pipelineCacheCreateInfo = new VkPipelineCacheCreateInfo { sType = VkStructureType.PipelineCacheCreateInfo };
+            CheckResult(NativeDeviceApi.vkCreatePipelineCache(nativeDevice, &pipelineCacheCreateInfo, null, out NativePipelineCache));
+
             NativeDeviceApi.vkGetDeviceQueue(nativeDevice, 0, 0, out NativeCommandQueue);
 
             NativeCopyCommandPools = new(() => new CommandBufferPool(this, false), true);
@@ -889,7 +898,52 @@ namespace Stride.Graphics
                 nativeCopyCommandPool.Dispose();
             NativeCopyCommandPools.Dispose();
             NativeCopyCommandPools = null;
+
+            if (NativePipelineCache != VkPipelineCache.Null)
+            {
+                NativeDeviceApi.vkDestroyPipelineCache(nativeDevice, NativePipelineCache, null);
+                NativePipelineCache = VkPipelineCache.Null;
+            }
+
             NativeDeviceApi.vkDestroyDevice(nativeDevice, null);
+        }
+
+        partial void MergePipelineCachePlatform(byte[] data)
+        {
+            unsafe
+            {
+                fixed (byte* dataPointer = data)
+                {
+                    // A cache of the earlier run's data, merged into the device's; the driver ignores data of another
+                    // device or driver and gives an empty cache instead
+                    var createInfo = new VkPipelineCacheCreateInfo
+                    {
+                        sType = VkStructureType.PipelineCacheCreateInfo,
+                        initialDataSize = (nuint)data.Length,
+                        pInitialData = dataPointer,
+                    };
+                    if (NativeDeviceApi.vkCreatePipelineCache(NativeDevice, &createInfo, null, out var earlierRun) != VkResult.Success)
+                        return;
+
+                    NativeDeviceApi.vkMergePipelineCaches(NativeDevice, NativePipelineCache, 1, &earlierRun);
+                    NativeDeviceApi.vkDestroyPipelineCache(NativeDevice, earlierRun, null);
+                }
+            }
+        }
+
+        partial void GetPipelineCacheDataPlatform(ref byte[] data)
+        {
+            unsafe
+            {
+                ulong size = 0;
+                NativeDeviceApi.vkGetPipelineCacheData(NativeDevice, NativePipelineCache, &size, null);
+                data = new byte[size];
+                if (size == 0)
+                    return;
+
+                fixed (byte* dataPointer = data)
+                    NativeDeviceApi.vkGetPipelineCacheData(NativeDevice, NativePipelineCache, &size, dataPointer);
+            }
         }
 
         internal unsafe ulong ExecuteCommandListInternal(CompiledCommandList commandList)
