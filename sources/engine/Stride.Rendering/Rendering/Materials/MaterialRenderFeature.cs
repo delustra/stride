@@ -198,15 +198,13 @@ namespace Stride.Rendering.Materials
                                 PrimitiveType = tessellationState.Method.GetPrimitiveType(),
                             };
 
+                            // The AEN indices, if any, were generated for the previous method
+                            Utilities.Dispose(ref tessellationState.GeneratedIndicesAEN);
+
                             // adapt the primitive type and index buffer to the tessellation used
                             if (tessellationState.Method.PerformsAdjacentEdgeAverage())
                             {
                                 Feature.renderMeshesToGenerateAEN.Add(renderMesh);
-                            }
-                            else
-                            {
-                                // Not using AEN tessellation anymore, dispose AEN indices if they were generated
-                                Utilities.Dispose(ref tessellationState.GeneratedIndicesAEN);
                             }
                             tessellationState.MeshDraw = tessellationMeshDraw;
 
@@ -368,7 +366,12 @@ namespace Stride.Rendering.Materials
             }
         }
 
-        public override void Draw(RenderDrawContext context, RenderView renderView, RenderViewStage renderViewStage, int startIndex, int endIndex)
+        /// <inheritdoc/>
+        /// <remarks>
+        /// The AEN indices are generated here, once per view and stage on the main command list, and not in the draw of a range of nodes:
+        /// a device that records command lists in parallel draws several ranges at once, and each would multiply the draw count again.
+        /// </remarks>
+        public override void Draw(RenderDrawContext context, RenderView renderView, RenderViewStage renderViewStage)
         {
             if (renderMeshesToGenerateAEN.Count > 0)
             {
@@ -376,7 +379,7 @@ namespace Stride.Rendering.Materials
 
                 foreach (var renderMesh in renderMeshesToGenerateAEN)
                 {
-                    var tessellationState = tessellationStates[renderMesh.StaticObjectNode];
+                    ref var tessellationState = ref tessellationStates[renderMesh.StaticObjectNode];
                     if (tessellationState.GeneratedIndicesAEN != null)
                         continue;
 
