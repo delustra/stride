@@ -142,6 +142,7 @@ public sealed class BepuSimulation : IDisposable
     /// <summary>
     /// The number of seconds per step to simulate. Lossy, prefer <see cref="FixedTimeStep"/>.
     /// </summary>
+    /// <inheritdoc cref="FixedTimeStep"/>
     [Display(3, "Fixed Time Step (s)", CategoryTime)]
     public double FixedTimeStepSeconds
     {
@@ -158,13 +159,6 @@ public sealed class BepuSimulation : IDisposable
     /// </remarks>
     [Display(4, "Time Scale", CategoryTime)]
     public float TimeScale { get; set; } = 1f;
-
-    /// <summary>
-    /// Represents the maximum number of steps per frame to avoid a death loop
-    /// </summary>
-    [Display(5, "Max steps/frame", CategoryTime, Browsable = false)]
-    [Obsolete($"Use {nameof(MaximumTimeSpanToProcess)} and {nameof(DropPostponedTicks)} instead")]
-    public int MaxStepPerFrame { get; set; } = 3;
 
     /// <summary>
     /// The span of time physics can catch up to when the game runs slow.
@@ -289,7 +283,7 @@ public sealed class BepuSimulation : IDisposable
     /// <remarks>
     /// Larger values improve performance at the cost of stability and precision.
     /// <para/>
-    /// A value between zero and <see cref="MaximumTimeSpanToProcess"/> cause all physics ticks to be postponed or dropped,
+    /// A value larger than <see cref="MaximumTimeSpanToProcess"/> causes all physics ticks to be postponed or dropped,
     /// see remarks for that property.
     /// </remarks>
     [DataMemberIgnore]
