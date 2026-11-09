@@ -251,34 +251,51 @@ namespace Stride.Graphics
 
         /// <summary>
         ///   Adds the pipelines of an earlier run to the device's pipeline cache, as <see cref="GetPipelineCacheData"/>
-        ///   returned them, so the driver does not build those pipelines again when their pipeline states are created.
-        ///   Data of another device or driver is ignored. Call it before the first pipeline state is created; it does
-        ///   nothing on a platform whose driver keeps its own cache.
+        ///   returned them, so the driver does not build those pipelines again when a pipeline state is created for them
+        ///   from here on. Data that is not of this device and driver version (<see cref="AdapterDriverInfo.PipelineCacheUuid"/>),
+        ///   or that was damaged since it was returned, is dropped and never given to the driver.
         /// </summary>
-        /// <param name="data">The data of an earlier run, or empty.</param>
-        public void MergePipelineCache(byte[] data)
+        /// <param name="data">The data of an earlier run; <see langword="null"/> or empty for none.</param>
+        /// <returns>
+        ///   <see langword="true"/> if the data was merged; <see langword="false"/> if it was dropped, or on an API without
+        ///   an exposed pipeline cache (Direct3D).
+        /// </returns>
+        /// <remarks>
+        ///   Can be called from any thread at any time in the device's life: it takes the lock pipeline states are
+        ///   created under. The pipelines built before the merge are in the cache already; the merge spares the ones
+        ///   created after it.
+        /// </remarks>
+        public bool MergePipelineCache(byte[] data)
         {
-            if (data == null || data.Length == 0)
-                return;
+            if (data is null || !PipelineCacheData.TryUnwrap(data, out var driverData))
+                return false;
 
-            MergePipelineCachePlatform(data);
+            var merged = false;
+            lock (CachedPipelineStates)
+                MergePipelineCachePlatform(driverData, ref merged);
+            return merged;
         }
 
         /// <summary>
-        ///   Gets the device's pipeline cache as the driver serializes it, the pipelines built so far, to keep for
-        ///   <see cref="MergePipelineCache"/> in a later run.
+        ///   Gets the device's pipeline cache, the pipelines built so far as the driver serializes them, to keep for
+        ///   <see cref="MergePipelineCache"/> in a later run. The data is opaque, and for a device with the same
+        ///   <see cref="AdapterDriverInfo.PipelineCacheUuid"/>.
         /// </summary>
-        /// <returns>The serialized pipeline cache; empty on a platform whose driver keeps its own cache.</returns>
+        /// <returns>The serialized pipeline cache; empty on an API without an exposed pipeline cache (Direct3D).</returns>
+        /// <remarks>Can be called from any thread at any time in the device's life.</remarks>
         public byte[] GetPipelineCacheData()
         {
-            byte[] data = null;
-            GetPipelineCacheDataPlatform(ref data);
-            return data ?? Array.Empty<byte>();
+            byte[] driverData = null;
+            lock (CachedPipelineStates)
+                GetPipelineCacheDataPlatform(ref driverData);
+            return driverData is { Length: > 0 } ? PipelineCacheData.Wrap(driverData) : [];
         }
 
-        partial void MergePipelineCachePlatform(byte[] data);
+        /// <summary>Merges the driver's blob of an earlier run, after the envelope was checked; the platform checks the blob's own header.</summary>
+        partial void MergePipelineCachePlatform(byte[] driverData, ref bool merged);
 
-        partial void GetPipelineCacheDataPlatform(ref byte[] data);
+        /// <summary>Gets the driver's blob of the device's pipeline cache; leaves <paramref name="driverData"/> <see langword="null"/> for none.</summary>
+        partial void GetPipelineCacheDataPlatform(ref byte[] driverData);
 
 
         /// <summary>
