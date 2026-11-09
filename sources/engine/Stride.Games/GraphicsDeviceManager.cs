@@ -414,6 +414,17 @@ namespace Stride.Games
         /// </summary>
         public bool PersistPipelineCache { get; set; } = true;
 
+        /// <summary>
+        ///   Writes the device's pipeline cache to its file now, as the device's disposal does, so the pipelines built so
+        ///   far survive a crash or a hard exit: a game calls it after its loading screen, where most of them are built.
+        ///   Does nothing while <see cref="PersistPipelineCache"/> is off, or before the device is created.
+        /// </summary>
+        public void SavePipelineCache()
+        {
+            if (GraphicsDevice is not null)
+                SavePipelineCache(GraphicsDevice);
+        }
+
 
         /// <summary>
         ///   Applies the changes in the graphics settings by resizing the <see cref="GraphicsDevice"/>'s presenter.

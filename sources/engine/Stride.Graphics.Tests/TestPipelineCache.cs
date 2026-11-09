@@ -29,6 +29,7 @@ public class TestPipelineCache : GraphicTestGameBase
     private byte[] dataBeforeDraw;
     private byte[] dataAfterDraw;
     private bool ownDataMerged;
+    private bool fileWrittenOnRequest;
     private GraphicsAdapter adapter;
 
     public TestPipelineCache()
@@ -64,6 +65,10 @@ public class TestPipelineCache : GraphicTestGameBase
     {
         dataAfterDraw = GraphicsDevice.GetPipelineCacheData();
         ownDataMerged = GraphicsDevice.MergePipelineCache(dataAfterDraw);
+
+        // The game's early save, before the device is disposed; nothing while the file is not kept
+        GraphicsDeviceManager.SavePipelineCache();
+        fileWrittenOnRequest = VirtualFileSystem.ApplicationCache.FileExists(GraphicsDeviceManager.GetPipelineCacheFile(adapter));
     }
 
     [SkippableFact]
@@ -124,11 +129,13 @@ public class TestPipelineCache : GraphicTestGameBase
         var notKeeping = new TestPipelineCache();
         RunGameTest(notKeeping);
         Assert.Equal(file, GraphicsDeviceManager.GetPipelineCacheFile(notKeeping.adapter));
+        Assert.False(notKeeping.fileWrittenOnRequest, "Nothing is written on request while PersistPipelineCache is off");
         Assert.False(cache.FileExists(file), "Nothing is written while PersistPipelineCache is off");
 
         var keeping = new TestPipelineCache();
         keeping.GraphicsDeviceManager.PersistPipelineCache = true;
         RunGameTest(keeping);
+        Assert.True(keeping.fileWrittenOnRequest, "The device's cache is written on request");
         Assert.True(cache.FileExists(file), "The device's cache is written when the device is disposed");
 
         byte[] written;
