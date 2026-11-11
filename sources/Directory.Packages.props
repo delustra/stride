@@ -65,14 +65,14 @@
     <PackageVersion Include="Mono.Cecil" Version="0.11.5" />
     <PackageVersion Include="Mono.Options" Version="6.12.0.148" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
-    <!-- 7.3.1 matches what .NET 10 SDK 10.0.202 ships. -->
-    <PackageVersion Include="NuGet.Commands" Version="7.3.1" />
-    <PackageVersion Include="NuGet.Configuration" Version="7.3.1" />
-    <PackageVersion Include="NuGet.Frameworks" Version="7.3.1" />
-    <PackageVersion Include="NuGet.PackageManagement" Version="7.3.1" />
-    <PackageVersion Include="NuGet.ProjectModel" Version="7.3.1" />
-    <PackageVersion Include="NuGet.Protocol" Version="7.3.1" />
-    <PackageVersion Include="NuGet.Resolver" Version="7.3.1" />
+    <!-- 8.0.0 matches what .NET 11 SDK 11.0.100 ships (Microsoft.TemplateEngine.Edge 11 brings NuGet.Credentials 8, and NuGet.* must be one version). -->
+    <PackageVersion Include="NuGet.Commands" Version="8.0.0" />
+    <PackageVersion Include="NuGet.Configuration" Version="8.0.0" />
+    <PackageVersion Include="NuGet.Frameworks" Version="8.0.0" />
+    <PackageVersion Include="NuGet.PackageManagement" Version="8.0.0" />
+    <PackageVersion Include="NuGet.ProjectModel" Version="8.0.0" />
+    <PackageVersion Include="NuGet.Protocol" Version="8.0.0" />
+    <PackageVersion Include="NuGet.Resolver" Version="8.0.0" />
     <PackageVersion Include="Sentry" Version="6.8.0" />
     <PackageVersion Include="Silk.NET.Assimp" Version="$(SilkVersion)" />
     <PackageVersion Include="Ultz.Native.Assimp" Version="6.0.2" />
