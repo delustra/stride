@@ -41,9 +41,9 @@
       <_StrideNuGetResolverFile Condition="Exists('$(OutputPath)$(AssemblyName).exe')" Include="$(OutputPath)$(AssemblyName).exe" />
       <_StrideNuGetResolverFile Include="$(OutputPath)NuGet*.dll" />
       <_StrideNuGetResolverFile Include="$(OutputPath)Newtonsoft.Json.dll" />
-      <_StrideNuGetResolverFile Include="$(OutputPath)Microsoft.Extensions.FileProviders.Abstractions.dll" />
+      <_StrideNuGetResolverFile Condition="Exists('$(OutputPath)Microsoft.Extensions.FileProviders.Abstractions.dll')" Include="$(OutputPath)Microsoft.Extensions.FileProviders.Abstractions.dll" />
       <_StrideNuGetResolverFile Include="$(OutputPath)Microsoft.Extensions.FileSystemGlobbing.dll" />
-      <_StrideNuGetResolverFile Include="$(OutputPath)Microsoft.Extensions.Primitives.dll" />
+      <_StrideNuGetResolverFile Condition="Exists('$(OutputPath)Microsoft.Extensions.Primitives.dll')" Include="$(OutputPath)Microsoft.Extensions.Primitives.dll" />
       <_StrideNuGetResolverFile Include="$(OutputPath)Stride.NuGetResolver*.dll" />
       <!-- Needed by NuGet.Packaging in cross platform builds (see https://github.com/stride3d/stride/issues/2232) -->
       <_StrideNuGetResolverFile Condition=" '$(TargetFramework)' == '$(StrideXplatEditorTargetFramework)' " Include="$(OutputPath)System.Security.Cryptography.Pkcs.dll" />
