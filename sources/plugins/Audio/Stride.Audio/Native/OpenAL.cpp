@@ -9,6 +9,7 @@
 #include "../../../deps/NativePath/NativeDynamicLinking.h"
 #include "../../../deps/NativePath/NativeMemory.h"
 #include "../../../deps/NativePath/NativeThreading.h"
+#include "Allocation.h"
 #include "../../../deps/NativePath/TINYSTL/unordered_set.h"
 #include "../../../deps/NativePath/TINYSTL/unordered_map.h"
 #include "../../../deps/NativePath/TINYSTL/vector.h"
@@ -209,6 +210,8 @@ extern "C" {
 
 		struct xnAudioDevice
 		{
+			XN_MALLOC_NEW_DELETE
+
 			ALCdevice* device;
 			SpinLock deviceLock;
 			tinystl::unordered_set<xnAudioListener*> listeners;
@@ -216,6 +219,8 @@ extern "C" {
 
 		struct xnAudioBuffer
 		{
+			XN_MALLOC_NEW_DELETE
+
 			short* pcm = NULL;
 			int size;
 			int sampleRate;
@@ -227,6 +232,8 @@ extern "C" {
 
 		struct xnAudioListener
 		{
+			XN_MALLOC_NEW_DELETE
+
 			xnAudioDevice* device;
 			ALCcontext* context;
 			tinystl::unordered_set<xnAudioSource*> sources;
@@ -235,6 +242,8 @@ extern "C" {
 
 		struct xnAudioSource
 		{
+			XN_MALLOC_NEW_DELETE
+
 			ALuint source;
 			int sampleRate;
 			bool mono;

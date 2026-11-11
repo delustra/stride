@@ -2,6 +2,7 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 #include "../../../deps/NativePath/NativePath.h"
+#include "Allocation.h"
 #include "../../../../engine/Stride.Native/StrideNative.h"
 #define HAVE_STDINT_H
 #include "../../../../../deps/Celt/include/opus_custom.h"
@@ -13,6 +14,8 @@ extern "C" {
 		StrideCelt(int sampleRate, int bufferSize, int channels, bool decoderOnly);
 
 		~StrideCelt();
+
+		XN_MALLOC_NEW_DELETE
 
 		bool Init();
 
