@@ -26,14 +26,14 @@ them.
 | Lights by render group | `feat/light-render-group` | not offered yet; answers [#501](https://github.com/stride3d/stride/issues/501) | `LightComponent.RenderGroup`; a view takes only the lights of the groups in its culling mask (`SceneCameraRenderer.RenderMask`), shadows included |
 | Bepu physics budget | `fix/bepu-drop-step-debt` | [#3683](https://github.com/stride3d/stride/pull/3683) | Bepu processes at most `MaximumTimeSpanToProcess` of game time per frame and postpones the rest, or drops it in whole steps with `DropPostponedTicks`; `MaxStepPerFrame` is removed, and the package upgrader drops its assignments in code |
 | Collider change in place | `fix/compound-change-in-place` | [#3532](https://github.com/stride3d/stride/pull/3532) | A collider change reshapes a live collidable in place and moves its constraints with the center of mass |
-| BepuPhysics 2.5.0-beta.33 | `chore/bepu-2.5.0-beta.33` | [#3757](https://github.com/stride3d/stride/pull/3757) | The BepuPhysics package pin, upstream pins beta.28; #3757 makes the same one-line bump, stacked on [#3756](https://github.com/stride3d/stride/pull/3756) |
 | Lighting sets | `feat/lighting-sets` | not offered yet | `ForwardLightingRenderFeature` compiles an effect for the lights of the views that draw its object, not for the union of every view's lights, so a compositor whose views have lights of their own does not compile every material again; `LightingSetsTest` |
 | Vulkan pipeline cache | `feat/vulkan-pipeline-cache` | [#3908](https://github.com/stride3d/stride/pull/3908), fixes [#3318](https://github.com/stride3d/stride/issues/3318) | The Vulkan device builds every pipeline through a `VkPipelineCache`, and `GraphicsDeviceManager` keeps it between runs by default (`PersistPipelineCache`, `/cache/pipelines-<pipelineCacheUUID>.bin`), so the driver does not compile every pipeline again at each start; `GraphicsDevice.MergePipelineCache` / `GetPipelineCacheData` for a host without a `Game`, in an envelope and with the Vulkan header checked, so another device's or a damaged file is dropped; `TestPipelineCache` |
 | Upload buffer race | `fix/upload-buffer-race` | not offered yet | A replaced upload buffer stays mapped until every caller that took space in it is done, so textures loaded on several threads (the Avalonia Game Studio's thumbnails) no longer write to unmapped memory on Vulkan; the Direct3D 12 allocator takes a lock and the same lease; `TestUploadBufferThreads` |
 | Pack (Crafter) workflow | `crafter` only | fork-only | `.github/workflows/pack-crafter.yml` builds a ref's NuGet packages for Windows and Linux as `<MajorMinor.Patch>-dev.<run>` and publishes them to the `engine-packages-<ref>` release |
 
-Pending: [#3758](https://github.com/stride3d/stride/pull/3758) (Heightfield), the top of the stack
-[#3750](https://github.com/stride3d/stride/pull/3750)–#3758 that replaces the closed [#3512](https://github.com/stride3d/stride/pull/3512).
+Pending: [#3758](https://github.com/stride3d/stride/pull/3758) (Heightfield), the last of the stack
+[#3750](https://github.com/stride3d/stride/pull/3750)–#3758 that replaces the closed [#3512](https://github.com/stride3d/stride/pull/3512);
+the rest of it is upstream.
 
 To update `crafter`, merge upstream `master` into it, then merge again each change's branch that moved.
 When a change lands upstream, its row goes. Every merge into `crafter` keeps this table in step.
