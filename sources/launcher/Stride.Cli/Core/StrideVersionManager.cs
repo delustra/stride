@@ -687,7 +687,7 @@ public sealed class StrideVersionManager
     private string? LocateExecutable(string packageId, PackageVersion version, params string[] executableNames)
         => LocateExecutable(packageId, version, includeWindowsOnly: OperatingSystem.IsWindows(), executableNames);
 
-    // The same, also in the Windows-only TFM folders (net10.0-windows7.0) when includeWindowsOnly: off Windows, those
+    // The same, also in the Windows-only TFM folders (net11.0-windows7.0) when includeWindowsOnly: off Windows, those
     // builds only run under Wine.
     private string? LocateExecutable(string packageId, PackageVersion version, bool includeWindowsOnly, params string[] executableNames)
     {
@@ -709,7 +709,7 @@ public sealed class StrideVersionManager
             foreach (var executableName in executableNames)
             {
                 var match = Directory.EnumerateFiles(directory, executableName, SearchOption.AllDirectories)
-                    // Skip Windows-only TFM folders (net10.0-windows7.0) unless asked; sort for a deterministic pick.
+                    // Skip Windows-only TFM folders (net11.0-windows7.0) unless asked; sort for a deterministic pick.
                     .Where(path => includeWindowsOnly || !IsWindowsTargetFrameworkFolder(path))
                     .OrderBy(path => path, StringComparer.Ordinal)
                     .FirstOrDefault();
@@ -721,7 +721,7 @@ public sealed class StrideVersionManager
         return null;
     }
 
-    // A Windows-specific TFM folder (e.g. net10.0-windows7.0), whose build only runs on Windows.
+    // A Windows-specific TFM folder (e.g. net11.0-windows7.0), whose build only runs on Windows.
     private static bool IsWindowsTargetFrameworkFolder(string path)
         => path.Contains("-windows", StringComparison.OrdinalIgnoreCase);
 

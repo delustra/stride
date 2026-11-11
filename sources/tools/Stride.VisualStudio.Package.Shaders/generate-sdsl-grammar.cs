@@ -181,7 +181,7 @@ static string FindRepoRoot(string start)
     throw new DirectoryNotFoundException($"Could not find the repository root above '{start}'.");
 }
 
-// Newest net10.0 (non-Android) build of Stride.Shaders.Parsers.dll under sources/shaders.
+// Newest net11.0 (non-Android) build of Stride.Shaders.Parsers.dll under sources/shaders.
 static string? LocateParsersAssembly(string repoRoot)
 {
     var searchRoot = Path.Combine(repoRoot, "sources", "shaders", "Stride.Shaders.Parsers", "bin");
@@ -189,7 +189,7 @@ static string? LocateParsersAssembly(string repoRoot)
         return null;
 
     return Directory.EnumerateFiles(searchRoot, "Stride.Shaders.Parsers.dll", SearchOption.AllDirectories)
-        .Where(path => path.Contains($"{Path.DirectorySeparatorChar}net10.0{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+        .Where(path => path.Contains($"{Path.DirectorySeparatorChar}net11.0{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
             && !path.Contains("android", StringComparison.OrdinalIgnoreCase)
             && !path.Contains($"{Path.DirectorySeparatorChar}ref{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
             && !path.Contains($"{Path.DirectorySeparatorChar}refint{Path.DirectorySeparatorChar}", StringComparison.Ordinal))

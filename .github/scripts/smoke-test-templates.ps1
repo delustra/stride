@@ -104,7 +104,7 @@ function Test-GameStudioRestore {
     $directory = Join-Path $workspace $name
     $start = Get-Date
     New-Item -ItemType Directory $directory | Out-Null
-    Set-Content (Join-Path $directory "$name.csproj") "<Project Sdk=`"Microsoft.NET.Sdk`"><PropertyGroup><TargetFramework>net10.0-windows</TargetFramework><NuGetAudit>false</NuGetAudit></PropertyGroup><ItemGroup><PackageReference Include=`"Stride.GameStudio`" Version=`"$Version`" /></ItemGroup></Project>"
+    Set-Content (Join-Path $directory "$name.csproj") "<Project Sdk=`"Microsoft.NET.Sdk`"><PropertyGroup><TargetFramework>net11.0-windows</TargetFramework><NuGetAudit>false</NuGetAudit></PropertyGroup><ItemGroup><PackageReference Include=`"Stride.GameStudio`" Version=`"$Version`" /></ItemGroup></Project>"
     Push-Location $workspace
     try {
         Invoke-Logged $log @('restore', (Join-Path $directory "$name.csproj"), '-nodeReuse:false')

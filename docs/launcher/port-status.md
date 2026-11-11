@@ -30,7 +30,7 @@ Captured here so reviewers don't try to "revert" them:
 |---|---|---|---|
 | Single-instance | `WindowsMutex` + `Process.GetProcessesByName` | `FileLock` under `EditorPath.DefaultTempPath` | Cross-platform |
 | Entry point | `[STAThread] Main` → `LauncherInstance().Run()` (WPF, `ShutdownMode.OnExplicitShutdown`) | `Program.Main` → `RunNewApp<App>(AppMain)` (Avalonia classical desktop) | Avalonia lifecycle |
-| TFM / RIDs | `net10.0-windows`, `win-x64` | `net10.0`, `linux-x64;win-x64` | Cross-platform |
+| TFM / RIDs | `net11.0-windows`, `win-x64` | `net11.0`, `linux-x64;win-x64` | Cross-platform |
 | Presentation lib | `Stride.Core.Presentation.Wpf` | `Stride.Core.Presentation.Avalonia` | Avalonia port |
 | Markdown | Markdig via WPF renderer | `MarkView.Avalonia` | Avalonia port |
 | Telemetry | `Stride.Metrics` / `MetricsClient` wrapping the run, `MetricsHelper.NotifyDownload*` around every package op | Removed | **Intentional, permanent** — the xplat launcher does not ship telemetry |
@@ -42,9 +42,9 @@ Captured here so reviewers don't try to "revert" them:
 
 ## Open items
 
-### Pending decision: .NET 10.0 runtime probe (Windows)
+### Pending decision: .NET 11.0 runtime probe (Windows)
 
-The old `PrerequisitesValidator` has no replacement. On a Windows machine without .NET 10.0 the launcher fails at the OS level with no user-friendly message. Options:
+The old `PrerequisitesValidator` has no replacement. On a Windows machine without .NET 11.0 the launcher fails at the OS level with no user-friendly message. Options:
 
 - **Self-contained publish** — bundle the runtime; no probe needed. Document in [packaging.md](packaging.md).
 - **Lightweight check** — detect missing runtime early and surface a download link before crashing.

@@ -25,7 +25,7 @@ sources/launcher/
 │   │   ├── Images/                Icons, banners, social links
 │   │   └── Localization/          Strings.resx, Urls.resx and .ja-JP variants
 │   ├── Properties/PublishProfiles/ dotnet publish profiles
-│   ├── Stride.Launcher.csproj      net10.0, linux-x64 + win-x64
+│   ├── Stride.Launcher.csproj      net11.0, linux-x64 + win-x64
 │   └── Stride.Launcher.nuspec      NuGet package definition (single source of truth for version)
 ├── Prerequisites/
 │   └── launcher-prerequisites.aip  Advanced Installer project → launcher-prerequisites.exe

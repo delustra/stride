@@ -350,10 +350,10 @@
   
   <!-- macOS host: system clang (no LLD). Celt and NativePath are true-macOS-arm64 rebuilds
        under deps/NativePath/dotnet/osx-arm64/ (iOS objects refuse to link into macOS dylibs).
-       Fires for net10.0 (with -p:StridePlatforms=macOS opt-in) and net10.0-macos (TFM is
+       Fires for net11.0 (with -p:StridePlatforms=macOS opt-in) and net11.0-macos (TFM is
        definitionally macOS, no opt-in gate). Net effect: each TFM lays its own dylib down
        in bin/<TFM>/runtimes/osx-arm64/native/, so ProjectReference consumers building for
-       net10.0-macos pick it up directly. -->
+       net11.0-macos pick it up directly. -->
   <Target Name="CompileNativeClang_macOSOnMac" Inputs="@(StrideNativeCFile);@(StrideNativeHFile)" Outputs="@(StrideNativeOutput)" Condition="(('$(TargetFramework)' == '$(StrideFramework)' And $(_StridePlatforms.Contains(';macOS;'))) Or '$(TargetFramework)' == '$(StrideFrameworkmacOS)') And $([MSBuild]::IsOSPlatform('OSX')) And $(DesignTimeBuild) != true And $(BuildingProject) != false" BeforeTargets="CoreCompile" DependsOnTargets="_StrideRegisterNativeOutputs">
     <MakeDir Directories="$(OutputObjectPath)/osx-arm64" />
     <MakeDir Directories="$(StrideNativeOutputPath)/runtimes/osx-arm64/native" />

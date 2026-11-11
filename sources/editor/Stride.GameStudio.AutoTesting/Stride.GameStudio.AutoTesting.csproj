@@ -4,10 +4,10 @@
     <OutputType>WinExe</OutputType>
     <!-- 22621 to access Windows.Graphics.Capture (DWM-based screenshot). 22H2 SDK is the minimum
          that exposes GraphicsCaptureSession.IsBorderRequired (yellow-frame suppression). The TFM
-         bump is contained to this assembly — Stride.GameStudio.exe stays at net10.0-windows. -->
+         bump is contained to this assembly — Stride.GameStudio.exe stays at net11.0-windows. -->
     <TargetFramework>$(StrideEditorTargetFramework)10.0.22621.0</TargetFramework>
     <!-- NuGet resolver target uses NuGet's canonical 3-part platform-version form (no trailing .0).
-         The 4-part TPV trips NuGet's input validator; net10.0-windows alone mismatches the package
+         The 4-part TPV trips NuGet's input validator; net11.0-windows alone mismatches the package
          assets when packages are built for the bumped moniker. -->
     <NuGetResolverTargetFramework>$(StrideEditorTargetFramework)10.0.22621</NuGetResolverTargetFramework>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

@@ -29,6 +29,7 @@ them.
 | Lighting sets | `feat/lighting-sets` | not offered yet | `ForwardLightingRenderFeature` compiles an effect for the lights of the views that draw its object, not for the union of every view's lights, so a compositor whose views have lights of their own does not compile every material again; `LightingSetsTest` |
 | Vulkan pipeline cache | `feat/vulkan-pipeline-cache` | [#3908](https://github.com/stride3d/stride/pull/3908), fixes [#3318](https://github.com/stride3d/stride/issues/3318) | The Vulkan device builds every pipeline through a `VkPipelineCache`, and `GraphicsDeviceManager` keeps it between runs by default (`PersistPipelineCache`, `/cache/pipelines-<pipelineCacheUUID>.bin`), so the driver does not compile every pipeline again at each start; `GraphicsDevice.MergePipelineCache` / `GetPipelineCacheData` for a host without a `Game`, in an envelope and with the Vulkan header checked, so another device's or a damaged file is dropped; `TestPipelineCache` |
 | Upload buffer race | `fix/upload-buffer-race` | not offered yet | A replaced upload buffer stays mapped until every caller that took space in it is done, so textures loaded on several threads (the Avalonia Game Studio's thumbnails) no longer write to unmapped memory on Vulkan; the Direct3D 12 allocator takes a lock and the same lease; `TestUploadBufferThreads` |
+| .NET 11 | `crafter` only | fork-only | The engine, editors, tools, tests, samples and templates target `net11.0` (`StrideFramework` and the TFMs derived from it), `global.json` pins SDK 11.0.100 and the CI workflows set up 11.0.x; the framework packages are on 11.0.0 (System.Text.Json, System.Management, Microsoft.Extensions.DependencyModel) and the SDK-band ones on 11.0.100 (TemplateEngine, SourceLink, ApiCompat). `deps/AssemblyProcessor/net10.0` stays: the build loads the netstandard2.0 one |
 | Pack (Crafter) workflow | `crafter` only | fork-only | `.github/workflows/pack-crafter.yml` builds a ref's NuGet packages for Windows and Linux as `<MajorMinor.Patch>-dev.<run>` and publishes them to the `engine-packages-<ref>` release |
 
 Pending: [#3758](https://github.com/stride3d/stride/pull/3758) (Heightfield), the last of the stack
@@ -88,7 +89,7 @@ Our [Roadmap](https://doc.stride3d.net/latest/en/contributors/roadmap.html) comm
 
 1. **Latest [Git](https://git-scm.com/downloads)** — the Windows installer includes Git LFS by default; make sure it stays enabled. For convenience, you can also use a UI client like [GitExtensions](https://gitextensions.github.io/).
 2. **[Visual Studio 2026](https://visualstudio.microsoft.com/downloads/)** (Community edition is free), with these two workloads:
-   - **.NET desktop development** (bundles the .NET 10 SDK)
+   - **.NET desktop development** (bundles the .NET 11 SDK)
    - **Desktop development with C++**
 
 > See [docs/build/README.md](docs/build/README.md) for detailed prerequisites (specific MSVC toolset versions, optional iOS/Android/ARM64/VSIX components, command-line builds without VS, and troubleshooting).

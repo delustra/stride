@@ -61,7 +61,7 @@
   <Target Name="_StrideIncludeNuGetResolverInTools" DependsOnTargets="_StrideCollectNuGetResolverFiles">
     <PropertyGroup>
       <!-- Mirror NuGet's lib folder name, which appends the default platform version
-           (net10.0-windows -> net10.0-windows7.0), so locators resolve the same way. -->
+           (net11.0-windows -> net11.0-windows7.0), so locators resolve the same way. -->
       <_StrideToolsTfm>$(TargetFramework)</_StrideToolsTfm>
       <_StrideToolsTfm Condition="'$(TargetPlatformVersion)' != '' and !$(TargetFramework.EndsWith($(TargetPlatformVersion)))">$(TargetFramework)$(TargetPlatformVersion)</_StrideToolsTfm>
     </PropertyGroup>

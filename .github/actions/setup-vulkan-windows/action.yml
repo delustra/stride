@@ -35,7 +35,7 @@ runs:
         # A throwaway project restore puts the package in the NuGet cache
         $tmpDir = "${{ runner.temp }}\lavapipe-fetch"
         New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
-        Set-Content -Path "$tmpDir\LavapipeFetch.csproj" -Value '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>'
+        Set-Content -Path "$tmpDir\LavapipeFetch.csproj" -Value '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>'
         dotnet add "$tmpDir\LavapipeFetch.csproj" package Stride.Dependencies.Lavapipe
         $icd = Get-ChildItem -Recurse -Path "$env:USERPROFILE\.nuget\packages\stride.dependencies.lavapipe" -Filter "lvp_icd*.json" -ErrorAction SilentlyContinue | Where-Object { $_.DirectoryName -match 'win-x64' } | Select-Object -First 1
         if (-not $icd) { throw "Lavapipe ICD not found in NuGet cache after restore." }

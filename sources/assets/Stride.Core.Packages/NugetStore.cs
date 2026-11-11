@@ -683,7 +683,7 @@ public partial class NugetStore : INugetDownloadProgress
 
         // In case it's a package without any TFM (i.e. Visual Studio plugin), we still need to specify one
         if (!targetFrameworks.Any())
-            targetFrameworks = ["net10.0"];
+            targetFrameworks = ["net11.0"];
 
         // The synthetic project name must never collide with a dependency
         var projectPath = projectName + ".json";

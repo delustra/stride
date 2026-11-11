@@ -124,7 +124,7 @@ namespace Stride.Core.Assets.Tests
                 Directory.Delete(dirPath, true);
             var projectDirectory = Path.Combine(dirPath, "DevLib");
             var stubDirectory = Path.Combine(dirPath, "packages", "devlib", "1.0.0");
-            Directory.CreateDirectory(Path.Combine(projectDirectory, "obj", "Debug", "net10.0"));
+            Directory.CreateDirectory(Path.Combine(projectDirectory, "obj", "Debug", "net11.0"));
             Directory.CreateDirectory(Path.Combine(stubDirectory, "stride"));
             Directory.CreateDirectory(Path.Combine(stubDirectory, "build"));
             Directory.CreateDirectory(Path.Combine(dirPath, "MyGame", "obj"));
@@ -138,7 +138,7 @@ namespace Stride.Core.Assets.Tests
                     Name: DevLib
                     Version: 1.0.0
                 """);
-            File.WriteAllText(Path.Combine(projectDirectory, "obj", "Debug", "net10.0", "DevLib.sdbuild"),
+            File.WriteAllText(Path.Combine(projectDirectory, "obj", "Debug", "net11.0", "DevLib.sdbuild"),
                 """
                 !AssetBuildManifest
                 Version: 1
@@ -183,11 +183,11 @@ namespace Stride.Core.Assets.Tests
                 $$"""
                 {
                   "version": 3,
-                  "targets": { "net10.0": { "DevLib/1.0.0": { "type": "package" } } },
+                  "targets": { "net11.0": { "DevLib/1.0.0": { "type": "package" } } },
                   "libraries": { "DevLib/1.0.0": { "type": "package", "path": "devlib/1.0.0", "files": [ "build/DevLib.props", "stride/DevLib.sdpkg" ] } },
-                  "projectFileDependencyGroups": { "net10.0": [ "DevLib >= 1.0.0" ] },
+                  "projectFileDependencyGroups": { "net11.0": [ "DevLib >= 1.0.0" ] },
                   "packageFolders": { "{{(Path.Combine(dirPath, "packages") + Path.DirectorySeparatorChar).Replace("\\", "\\\\")}}": {} },
-                  "project": { "version": "1.0.0", "frameworks": { "net10.0": {} } }
+                  "project": { "version": "1.0.0", "frameworks": { "net11.0": {} } }
                 }
                 """);
             File.WriteAllText(Path.Combine(dirPath, "MyGame", "obj", "MyGame.sdbuild"),
@@ -197,7 +197,7 @@ namespace Stride.Core.Assets.Tests
                 ProjectFile: "../MyGame.csproj"
                 PackageFile: "../MyGame.sdpkg"
                 PackageName: "MyGame"
-                TargetFramework: "net10.0"
+                TargetFramework: "net11.0"
                 NuGetLockFile: "project.assets.json"
                 """);
 
@@ -223,11 +223,11 @@ namespace Stride.Core.Assets.Tests
                 Directory.Delete(dirPath, true);
             var projectDirectory = Path.Combine(dirPath, "DevLib");
             var stubDirectory = Path.Combine(dirPath, "packages", "devlib", "1.0.0");
-            Directory.CreateDirectory(Path.Combine(projectDirectory, "obj", "Debug", "net10.0"));
-            Directory.CreateDirectory(Path.Combine(projectDirectory, "bin", "Debug", "net10.0"));
+            Directory.CreateDirectory(Path.Combine(projectDirectory, "obj", "Debug", "net11.0"));
+            Directory.CreateDirectory(Path.Combine(projectDirectory, "bin", "Debug", "net11.0"));
             Directory.CreateDirectory(Path.Combine(stubDirectory, "stride"));
             Directory.CreateDirectory(Path.Combine(stubDirectory, "build"));
-            Directory.CreateDirectory(Path.Combine(stubDirectory, "lib", "net10.0"));
+            Directory.CreateDirectory(Path.Combine(stubDirectory, "lib", "net11.0"));
             Directory.CreateDirectory(Path.Combine(dirPath, "MyGame", "obj"));
 
             File.WriteAllText(Path.Combine(projectDirectory, "DevLib.csproj"), "<Project />");
@@ -239,7 +239,7 @@ namespace Stride.Core.Assets.Tests
                     Name: DevLib
                     Version: 1.0.0
                 """);
-            File.WriteAllText(Path.Combine(projectDirectory, "obj", "Debug", "net10.0", "DevLib.sdbuild"),
+            File.WriteAllText(Path.Combine(projectDirectory, "obj", "Debug", "net11.0", "DevLib.sdbuild"),
                 """
                 !AssetBuildManifest
                 Version: 1
@@ -247,9 +247,9 @@ namespace Stride.Core.Assets.Tests
                 PackageFile: "../../../DevLib.sdpkg"
                 PackageName: "DevLib"
                 HostAssemblies:
-                    - "../../../bin/Debug/net10.0/DevLib.dll"
+                    - "../../../bin/Debug/net11.0/DevLib.dll"
                 """);
-            var checkoutAssembly = Path.Combine(projectDirectory, "bin", "Debug", "net10.0", "DevLib.dll");
+            var checkoutAssembly = Path.Combine(projectDirectory, "bin", "Debug", "net11.0", "DevLib.dll");
             if (built)
                 File.WriteAllText(checkoutAssembly, "");
 
@@ -261,10 +261,10 @@ namespace Stride.Core.Assets.Tests
                     Name: DevLib
                     Version: 1.0.0
                 HostAssemblies:
-                    -   TargetFramework: net10.0
-                        Path: !file ../lib/net10.0/DevLib.dll
-                    -   TargetFramework: net10.0
-                        Path: !file ../lib/net10.0/Bundled.dll
+                    -   TargetFramework: net11.0
+                        Path: !file ../lib/net11.0/DevLib.dll
+                    -   TargetFramework: net11.0
+                        Path: !file ../lib/net11.0/Bundled.dll
                 """);
             File.WriteAllText(Path.Combine(stubDirectory, "build", "DevLib.props"),
                 $"""
@@ -276,8 +276,8 @@ namespace Stride.Core.Assets.Tests
                   </ItemGroup>
                 </Project>
                 """);
-            var packageAssembly = Path.Combine(stubDirectory, "lib", "net10.0", "DevLib.dll");
-            var bundledAssembly = Path.Combine(stubDirectory, "lib", "net10.0", "Bundled.dll");
+            var packageAssembly = Path.Combine(stubDirectory, "lib", "net11.0", "DevLib.dll");
+            var bundledAssembly = Path.Combine(stubDirectory, "lib", "net11.0", "Bundled.dll");
             File.WriteAllText(packageAssembly, "");
             File.WriteAllText(bundledAssembly, "");
 
@@ -293,11 +293,11 @@ namespace Stride.Core.Assets.Tests
                 $$"""
                 {
                   "version": 3,
-                  "targets": { "net10.0": { "DevLib/1.0.0": { "type": "package" } } },
-                  "libraries": { "DevLib/1.0.0": { "type": "package", "path": "devlib/1.0.0", "files": [ "build/DevLib.props", "lib/net10.0/DevLib.dll", "lib/net10.0/Bundled.dll", "stride/DevLib.sdpkg" ] } },
-                  "projectFileDependencyGroups": { "net10.0": [ "DevLib >= 1.0.0" ] },
+                  "targets": { "net11.0": { "DevLib/1.0.0": { "type": "package" } } },
+                  "libraries": { "DevLib/1.0.0": { "type": "package", "path": "devlib/1.0.0", "files": [ "build/DevLib.props", "lib/net11.0/DevLib.dll", "lib/net11.0/Bundled.dll", "stride/DevLib.sdpkg" ] } },
+                  "projectFileDependencyGroups": { "net11.0": [ "DevLib >= 1.0.0" ] },
                   "packageFolders": { "{{(Path.Combine(dirPath, "packages") + Path.DirectorySeparatorChar).Replace("\\", "\\\\")}}": {} },
-                  "project": { "version": "1.0.0", "frameworks": { "net10.0": {} } }
+                  "project": { "version": "1.0.0", "frameworks": { "net11.0": {} } }
                 }
                 """);
             File.WriteAllText(Path.Combine(dirPath, "MyGame", "obj", "MyGame.sdbuild"),
@@ -307,7 +307,7 @@ namespace Stride.Core.Assets.Tests
                 ProjectFile: "../MyGame.csproj"
                 PackageFile: "../MyGame.sdpkg"
                 PackageName: "MyGame"
-                TargetFramework: "net10.0"
+                TargetFramework: "net11.0"
                 NuGetLockFile: "project.assets.json"
                 """);
 

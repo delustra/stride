@@ -215,7 +215,7 @@ internal sealed class ShellSessionFixture : IDisposable
         File.WriteAllText(Path.Combine(PackageDirectory, PackageName + ".csproj"),
             "<Project Sdk=\"Microsoft.NET.Sdk\">" + Environment.NewLine +
             "  <PropertyGroup>" + Environment.NewLine +
-            "    <TargetFramework>net10.0</TargetFramework>" + Environment.NewLine +
+            "    <TargetFramework>net11.0</TargetFramework>" + Environment.NewLine +
             executable +
             "    <StrideContainsAssetTypes>false</StrideContainsAssetTypes>" + Environment.NewLine +
             "  </PropertyGroup>" + Environment.NewLine +

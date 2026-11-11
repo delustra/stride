@@ -19,7 +19,7 @@ public abstract class StrideVersionViewModel : PackageVersionViewModel, ICompara
     private bool isActive;
     private string? selectedEditor;
     // Maps each discovered editor name to its fully-resolved directory (including TFM subfolder).
-    // e.g. "Stride.GameStudio.Avalonia.Desktop" → ".../lib/net10.0"
+    // e.g. "Stride.GameStudio.Avalonia.Desktop" → ".../lib/net11.0"
     // Populated by UpdateAvailableEditors; consumed by LocateMainExecutable.
     private readonly Dictionary<string, string> _editorToDir = [];
 
@@ -57,7 +57,7 @@ public abstract class StrideVersionViewModel : PackageVersionViewModel, ICompara
     /// </summary>
     /// <remarks>
     /// Each editor (Avalonia, WPF) may live in a different NuGet package directory <em>and</em>
-    /// a different TFM subfolder (e.g. <c>net10.0</c> vs <c>net10.0-windows7.0</c>). This
+    /// a different TFM subfolder (e.g. <c>net11.0</c> vs <c>net11.0-windows7.0</c>). This
     /// method therefore enumerates every <c>tools/&lt;tfm&gt;</c> and <c>lib/&lt;tfm&gt;</c>
     /// subdirectory under every path returned by <see cref="GetAllInstalledPaths"/>; the first
     /// folder holding an editor wins. The resolved per-editor directory is stored
@@ -224,7 +224,7 @@ public abstract class StrideVersionViewModel : PackageVersionViewModel, ICompara
 
         // Use the pre-computed editor → directory map from UpdateAvailableEditors.
         // Each editor may live in a different package directory and a different TFM subfolder
-        // (e.g. net10.0 for Avalonia, net10.0-windows7.0 for WPF), so we store the fully
+        // (e.g. net11.0 for Avalonia, net11.0-windows7.0 for WPF), so we store the fully
         // resolved directory.
         foreach (var gameStudioExecutable in GetPreferredExecutableNames())
         {

@@ -66,7 +66,7 @@ public sealed class DevRedirectStubTests : IDisposable
     public void TryGetDevRedirectOutputDirectory_NullForARealPackage()
     {
         var package = Path.Combine(root, "packages", "stride.assetcompiler", "4.4.1");
-        Directory.CreateDirectory(Path.Combine(package, "tools", "net10.0"));
+        Directory.CreateDirectory(Path.Combine(package, "tools", "net11.0"));
 
         Assert.Null(NugetStore.TryGetDevRedirectOutputDirectory(package, "Stride.AssetCompiler"));
     }

@@ -667,7 +667,7 @@ static void ProcessPackage(string pkgPath, string pkgId, ProjectInfo projInfo, D
     // Analyzers the package ships that are built in this checkout (a generator, or a dependency of one
     // packed beside it): the targets below redirect them like the DLL, so a generator change reaches
     // consumers on their next build. The dev DLL is looked up in the project's bin/<configuration>/<tfm>
-    // folders (netstandard2.0 for a classic analyzer, net10.0 for Stride's generators and their
+    // folders (netstandard2.0 for a classic analyzer, net11.0 for Stride's generators and their
     // dependencies); not built yet, or no matching project, and the package's copy stays.
     var analyzers = zip.Entries
         .Where(e => e.FullName.StartsWith("analyzers/", StringComparison.OrdinalIgnoreCase) && e.FullName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
@@ -845,8 +845,8 @@ static string GenerateRedirectProps(string pkgId, ProjectInfo projInfo, string s
     var relProjDir = Path.GetRelativePath(strideRoot, projInfo.ProjectDir).Replace('\\', '/');
 
     var hintPath = projInfo.IsGraphicsDependent
-        ? $"$(StrideDevRoot)/{relProjDir}/bin/$(StrideDevConfiguration)/net10.0/$(StrideGraphicsApi)/{projInfo.AssemblyName}.dll"
-        : $"$(StrideDevRoot)/{relProjDir}/bin/$(StrideDevConfiguration)/net10.0/{projInfo.AssemblyName}.dll";
+        ? $"$(StrideDevRoot)/{relProjDir}/bin/$(StrideDevConfiguration)/net11.0/$(StrideGraphicsApi)/{projInfo.AssemblyName}.dll"
+        : $"$(StrideDevRoot)/{relProjDir}/bin/$(StrideDevConfiguration)/net11.0/{projInfo.AssemblyName}.dll";
 
     return $"""
         <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
@@ -889,13 +889,13 @@ static string GenerateRedirectTargets(string pkgId, ProjectInfo projInfo, string
     var relProjDir = Path.GetRelativePath(strideRoot, projInfo.ProjectDir).Replace('\\', '/');
     var gfxSeg = projInfo.IsGraphicsDependent ? "/$(StrideGraphicsApi)" : "";
     // Redirect to the in-tree bin DLL matching the consumer's TFM when that project produced one
-    // (e.g. net10.0-windows brings WinForms/WPF, net10.0-ios its iOS bits), else the portable net10.0
+    // (e.g. net11.0-windows brings WinForms/WPF, net11.0-ios its iOS bits), else the portable net11.0
     // build. $(TargetFramework) is the short form, which matches the bin folder name; Exists() makes
     // it self-correcting per project/TFM.
-    var portableDll = $"$(StrideDevRoot)/{relProjDir}/bin/$(StrideDevConfiguration)/net10.0{gfxSeg}/{projInfo.AssemblyName}.dll";
+    var portableDll = $"$(StrideDevRoot)/{relProjDir}/bin/$(StrideDevConfiguration)/net11.0{gfxSeg}/{projInfo.AssemblyName}.dll";
     var tfmDll = $"$(StrideDevRoot)/{relProjDir}/bin/$(StrideDevConfiguration)/$(TargetFramework){gfxSeg}/{projInfo.AssemblyName}.dll";
     // Fall back to the no-graphics-API TFM layout when the gfx-segmented dll is absent (e.g. iOS,
-    // which has no per-API subdir), rather than the host net10.0 portable build.
+    // which has no per-API subdir), rather than the host net11.0 portable build.
     var tfmDllNoGfx = $"$(StrideDevRoot)/{relProjDir}/bin/$(StrideDevConfiguration)/$(TargetFramework)/{projInfo.AssemblyName}.dll";
 
     // Replace dots with underscores in target/property names; MSBuild rejects dotted target names.
@@ -909,8 +909,8 @@ static string GenerateRedirectTargets(string pkgId, ProjectInfo projInfo, string
 
             <PropertyGroup>
               <_StrideDev_{{safeId}}_DevDll>{{portableDll}}</_StrideDev_{{safeId}}_DevDll>
-              <_StrideDev_{{safeId}}_DevDll Condition="'$(TargetFramework)' != 'net10.0' And Exists('{{tfmDll}}')">{{tfmDll}}</_StrideDev_{{safeId}}_DevDll>
-              <_StrideDev_{{safeId}}_DevDll Condition="'$(TargetFramework)' != 'net10.0' And !Exists('{{tfmDll}}') And Exists('{{tfmDllNoGfx}}')">{{tfmDllNoGfx}}</_StrideDev_{{safeId}}_DevDll>
+              <_StrideDev_{{safeId}}_DevDll Condition="'$(TargetFramework)' != 'net11.0' And Exists('{{tfmDll}}')">{{tfmDll}}</_StrideDev_{{safeId}}_DevDll>
+              <_StrideDev_{{safeId}}_DevDll Condition="'$(TargetFramework)' != 'net11.0' And !Exists('{{tfmDll}}') And Exists('{{tfmDllNoGfx}}')">{{tfmDllNoGfx}}</_StrideDev_{{safeId}}_DevDll>
             </PropertyGroup>
 
             <!-- Match by NuGetPackageId AND Filename: some packages ship sibling DLLs in their

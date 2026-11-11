@@ -295,7 +295,7 @@ partial class PackageSession
         return container;
     }
 
-    // The host's own framework (the editor runs net10.0-windows, the asset compiler net10.0), so a companion
+    // The host's own framework (the editor runs net11.0-windows, the asset compiler net11.0), so a companion
     // package restores what this process can load
     private static string GetHostTargetFramework()
     {

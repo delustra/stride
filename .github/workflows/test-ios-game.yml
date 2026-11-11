@@ -115,7 +115,7 @@ jobs:
           exclude: samples
 
       - name: Install iOS + macOS Workloads
-        # macOS workload is needed because the engine libs cross-target net10.0-macos (for the
+        # macOS workload is needed because the engine libs cross-target net11.0-macos (for the
         # AVFoundation/Metal bring-up work). slnf-driven builds dispatch all TFMs of every project
         # they pull in, so the iOS slnf still needs the macOS workload available.
         uses: ./.github/actions/stride-workload
@@ -218,9 +218,9 @@ jobs:
 
       - name: Build iOS test .app bundle
         # No explicit RuntimeIdentifier: passing one as a global property leaks into the host
-        # net10.0 build (used to load assemblies into the AssetCompiler) and crashes its
+        # net11.0 build (used to load assemblies into the AssetCompiler) and crashes its
         # ResolveNativeReferences. The iOS SDK infers iossimulator-arm64 on its own for
-        # net10.0-ios on an arm64 host.
+        # net11.0-ios on an arm64 host.
         run: |
           dotnet build "$IOS_BUILD_TARGET" \
             -nr:false -v:m -p:WarningLevel=0 \

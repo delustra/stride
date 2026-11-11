@@ -64,7 +64,7 @@
        from StrideTestPlatforms so the value is known when the csproj body evaluates and the
        literal <TargetFrameworks> element lives in the csproj (keeps SDK-style detection working).
        Two variants: a test consuming Stride.Runtime libs bound to Microsoft.macOS APIs
-       (AVFoundation/Metal) picks ...MacOS to add net10.0-macos instead of collapsing to the base.
+       (AVFoundation/Metal) picks ...MacOS to add net11.0-macos instead of collapsing to the base.
        Order/conditions mirror the per-platform expansion (Game host-shadow, host-windows when a
        mobile platform is present on a Windows host, then mobile). -->
   <PropertyGroup Condition="'$(StrideTestPlatforms)' != ''">
@@ -89,7 +89,7 @@
     <_StrideTestTargetFrameworksBase>$(_StrideTestTargetFrameworksBase)$(_StrideTestTargetFrameworksTail)</_StrideTestTargetFrameworksBase>
     <StrideTestTargetFrameworks>$([MSBuild]::Unescape($(_StrideTestTargetFrameworksBase.TrimEnd(';'))))</StrideTestTargetFrameworks>
 
-    <!-- macOS variant: tests consuming Stride.Runtime macOS-native libs add net10.0-macos (last) -->
+    <!-- macOS variant: tests consuming Stride.Runtime macOS-native libs add net11.0-macos (last) -->
     <_StrideTestTargetFrameworksMac>$(_StrideTestDesktop)$(_StrideTestTargetFrameworksTail)</_StrideTestTargetFrameworksMac>
     <_StrideTestTargetFrameworksMac Condition="$(_StrideTestPlatforms.Contains(';macOS;'))">$(_StrideTestTargetFrameworksMac)$(StrideFrameworkmacOS);</_StrideTestTargetFrameworksMac>
     <StrideTestTargetFrameworksMacOS>$([MSBuild]::Unescape($(_StrideTestTargetFrameworksMac.TrimEnd(';'))))</StrideTestTargetFrameworksMacOS>

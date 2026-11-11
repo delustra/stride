@@ -7,11 +7,11 @@
     IStrideCommands must live in an assembly literally named Stride.VisualStudio.Commands.Interfaces
     to match the server's registration and payload type names. Hence the AssemblyName override.
 
-    The real Interfaces project targets net10.0-windows (editor SDK) and can't be referenced from the
-    cross-platform net10.0 CLI, so the same source files are linked here into a plain net10.0 assembly.
+    The real Interfaces project targets net11.0-windows (editor SDK) and can't be referenced from the
+    cross-platform net11.0 CLI, so the same source files are linked here into a plain net11.0 assembly.
   -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <AssemblyName>Stride.VisualStudio.Commands.Interfaces</AssemblyName>
     <RootNamespace>Stride.VisualStudio.Commands</RootNamespace>
     <Nullable>disable</Nullable>

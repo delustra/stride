@@ -57,7 +57,7 @@ public class AssetPluginPackagingTests : IDisposable
 
         // The consumer's StrideAssetNamespaceUsing items bring both namespaces into scope: the
         // deployed alias table maps bare URLs to the rooted ones.
-        var aliases = File.ReadAllText(Path.Combine(consumerDir, "bin", "Debug", "net10.0", "data", "db", "aliases"));
+        var aliases = File.ReadAllText(Path.Combine(consumerDir, "bin", "Debug", "net11.0", "data", "db", "aliases"));
         Assert.Contains("PluginPage|/StrideAssetPlugin/PluginPage", aliases);
         Assert.Contains("Page|/Consumer/Page", aliases);
 
@@ -71,7 +71,7 @@ public class AssetPluginPackagingTests : IDisposable
     /// <summary>Run the built consumer: it loads content by rooted and bare (aliased) URLs.</summary>
     private void AssertRuntimeContentResolves(string consumerDir)
     {
-        var binDir = Path.Combine(consumerDir, "bin", "Debug", "net10.0");
+        var binDir = Path.Combine(consumerDir, "bin", "Debug", "net11.0");
         var run = Dotnet.Exec(["exec", Path.Combine(binDir, "Consumer.dll")], binDir, output, timeoutMin: 2);
         Assert.True(run.ExitCode == 0, $"Consumer runtime content check failed (exit {run.ExitCode}).");
         Assert.Contains("CONTENT OK PluginPage", run.Output);
@@ -100,7 +100,7 @@ public class AssetPluginPackagingTests : IDisposable
         Assert.Matches(@"(?m)^/StrideAssetPlugin/PluginPage ", index);
         Assert.Matches(@"(?m)^/Consumer/Page ", index);
 
-        var aliases = File.ReadAllText(Path.Combine(consumerDir, "bin", "Debug", "net10.0", "data", "db", "aliases"));
+        var aliases = File.ReadAllText(Path.Combine(consumerDir, "bin", "Debug", "net11.0", "data", "db", "aliases"));
         Assert.Contains("PluginPage|/StrideAssetPlugin/PluginPage", aliases);
 
         AssertRuntimeContentResolves(consumerDir);

@@ -99,7 +99,7 @@ jobs:
           exclude: samples
       - name: Install macOS Workload
         # Building a suite project on its own dispatched all TFMs of the referenced engine projects,
-        # including net10.0-macos. The target is now always a solution filter, which never does, so
+        # including net11.0-macos. The target is now always a solution filter, which never does, so
         # this is only a safety net.
         uses: ./.github/actions/stride-workload
         with:
@@ -184,7 +184,7 @@ jobs:
         continue-on-error: ${{ inputs.tolerate-test-failures == true }}
         run: |
           CONFIG="${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }}"
-          # net10.0-macos suites build a .app and need its host (the Microsoft.macOS ObjC
+          # net11.0-macos suites build a .app and need its host (the Microsoft.macOS ObjC
           # bridge is only initialized there); the next step runs them. Exclude from vstest.
           EXCLUDE=""
           for app in bin/Tests/*/macOS-Vulkan/$CONFIG/*.app; do

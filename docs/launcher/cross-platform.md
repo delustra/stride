@@ -1,6 +1,6 @@
 # Cross-platform notes
 
-The launcher is in the middle of a Windows → Avalonia cross-platform port (`xplat-launcher` stream). It targets `net10.0` with RIDs `linux-x64` and `win-x64`; WPF has been fully replaced by Avalonia 12. This file lists the code paths that still behave differently per OS and what the remaining gaps are.
+The launcher is in the middle of a Windows → Avalonia cross-platform port (`xplat-launcher` stream). It targets `net11.0` with RIDs `linux-x64` and `win-x64`; WPF has been fully replaced by Avalonia 12. This file lists the code paths that still behave differently per OS and what the remaining gaps are.
 
 ## Executable shape
 

@@ -20,15 +20,15 @@ public sealed class NuGetResolverCacheTests : IDisposable
     }
 
     [Theory]
-    [InlineData("Stride.GameStudio-4.5.0-dev-net10.0-windows7.0-win-x64", "Stride.GameStudio", "4.5.0-dev", true)]
-    [InlineData("Stride.GameStudio-4.5.0-dev-net10.0-linux-x64", "Stride.GameStudio", "4.5.0-dev", true)]
-    [InlineData("stride.gamestudio-4.5.0-dev-net10.0-win-x64", "Stride.GameStudio", "4.5.0-dev", true)]
+    [InlineData("Stride.GameStudio-4.5.0-dev-net11.0-windows7.0-win-x64", "Stride.GameStudio", "4.5.0-dev", true)]
+    [InlineData("Stride.GameStudio-4.5.0-dev-net11.0-linux-x64", "Stride.GameStudio", "4.5.0-dev", true)]
+    [InlineData("stride.gamestudio-4.5.0-dev-net11.0-win-x64", "Stride.GameStudio", "4.5.0-dev", true)]
     // The release doesn't take the folders of its dev versions
-    [InlineData("Stride.GameStudio-4.5.0-dev-net10.0-win-x64", "Stride.GameStudio", "4.5.0", false)]
-    [InlineData("Stride.GameStudio-4.5.0-dev2-net10.0-win-x64", "Stride.GameStudio", "4.5.0", false)]
-    [InlineData("Stride.GameStudio-4.5.0-dev2-net10.0-win-x64", "Stride.GameStudio", "4.5.0-dev", false)]
+    [InlineData("Stride.GameStudio-4.5.0-dev-net11.0-win-x64", "Stride.GameStudio", "4.5.0", false)]
+    [InlineData("Stride.GameStudio-4.5.0-dev2-net11.0-win-x64", "Stride.GameStudio", "4.5.0", false)]
+    [InlineData("Stride.GameStudio-4.5.0-dev2-net11.0-win-x64", "Stride.GameStudio", "4.5.0-dev", false)]
     // Nor a package the folders of another one whose id it starts
-    [InlineData("Stride.Core.Assets-4.5.0-dev-net10.0-win-x64", "Stride.Core", "4.5.0-dev", false)]
+    [InlineData("Stride.Core.Assets-4.5.0-dev-net11.0-win-x64", "Stride.Core", "4.5.0-dev", false)]
     public void IsFolderOf(string folderName, string packageName, string version, bool expected)
     {
         Assert.Equal(expected, NuGetResolverCache.IsFolderOf(folderName, packageName, version));
@@ -50,8 +50,8 @@ public sealed class NuGetResolverCacheTests : IDisposable
     [Fact]
     public void Delete_RemovesTheFoldersOfTheVersionOnly()
     {
-        string[] removed = ["Stride.GameStudio-4.5.0-dev-net10.0-windows7.0-win-x64", "Stride.GameStudio-4.5.0-dev-net10.0-linux-x64"];
-        string[] kept = ["Stride.GameStudio-4.4.0.1-net10.0-windows7.0-win-x64", "Stride.GameStudio-4.5.0-dev2-net10.0-win-x64", "Stride.Core-4.5.0-dev-net10.0-win-x64", "Avalonia.Desktop-11.3.0-net10.0-win-x64"];
+        string[] removed = ["Stride.GameStudio-4.5.0-dev-net11.0-windows7.0-win-x64", "Stride.GameStudio-4.5.0-dev-net11.0-linux-x64"];
+        string[] kept = ["Stride.GameStudio-4.4.0.1-net11.0-windows7.0-win-x64", "Stride.GameStudio-4.5.0-dev2-net11.0-win-x64", "Stride.Core-4.5.0-dev-net11.0-win-x64", "Avalonia.Desktop-11.3.0-net11.0-win-x64"];
         foreach (var folder in removed.Concat(kept))
         {
             Directory.CreateDirectory(Path.Combine(root, folder));
@@ -70,7 +70,7 @@ public sealed class NuGetResolverCacheTests : IDisposable
     [InlineData("4.5.0.1-dev")]
     public void DeleteResolverRestore_DeletesTheFoldersTheResolverMade(string version)
     {
-        var folder = NuGetResolverCache.GetFolder("Stride.GameStudio", new NuGetVersion(version).ToString(), "net10.0-windows7.0", "win-x64");
+        var folder = NuGetResolverCache.GetFolder("Stride.GameStudio", new NuGetVersion(version).ToString(), "net11.0-windows7.0", "win-x64");
         var restored = Path.Combine(root, Path.GetFileName(folder));
         Directory.CreateDirectory(restored);
 
@@ -81,7 +81,7 @@ public sealed class NuGetResolverCacheTests : IDisposable
     [Fact]
     public void DeleteResolverRestore_LeavesReleases()
     {
-        var restored = Path.Combine(root, "Stride.GameStudio-4.4.0.1-net10.0-windows7.0-win-x64");
+        var restored = Path.Combine(root, "Stride.GameStudio-4.4.0.1-net11.0-windows7.0-win-x64");
         Directory.CreateDirectory(restored);
 
         Assert.Equal(0, NugetStore.DeleteResolverRestore("Stride.GameStudio", new PackageVersion("4.4.0.1"), root));
@@ -97,7 +97,7 @@ public sealed class NuGetResolverCacheTests : IDisposable
     [Fact]
     public void GetFolder_IsUnderRoot()
     {
-        var folder = NuGetResolverCache.GetFolder("Stride.GameStudio", "4.5.0-dev", "net10.0-windows7.0", "win-x64");
+        var folder = NuGetResolverCache.GetFolder("Stride.GameStudio", "4.5.0-dev", "net11.0-windows7.0", "win-x64");
 
         Assert.Equal(NuGetResolverCache.Root, Path.GetDirectoryName(folder));
         Assert.True(NuGetResolverCache.IsFolderOf(Path.GetFileName(folder), "Stride.GameStudio", "4.5.0-dev"));

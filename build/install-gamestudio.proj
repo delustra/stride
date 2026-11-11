@@ -77,7 +77,7 @@
     <ItemGroup>
       <_DeployProjectLines Include="&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;" />
       <_DeployProjectLines Include="  &lt;PropertyGroup&gt;" />
-      <_DeployProjectLines Include="    &lt;TargetFramework&gt;net10.0-windows&lt;/TargetFramework&gt;" />
+      <_DeployProjectLines Include="    &lt;TargetFramework&gt;net11.0-windows&lt;/TargetFramework&gt;" />
       <_DeployProjectLines Include="    &lt;RuntimeIdentifier&gt;win-x64&lt;/RuntimeIdentifier&gt;" />
       <_DeployProjectLines Include="    &lt;EnableDefaultCompileItems&gt;false&lt;/EnableDefaultCompileItems&gt;" />
       <_DeployProjectLines Include="  &lt;/PropertyGroup&gt;" />
@@ -95,7 +95,7 @@
 
   <Target Name="Run" DependsOnTargets="Deploy">
     <ItemGroup>
-      <_GameStudioExe Include="$(NuGetPackagesRoot)\stride.gamestudio\$(GameStudioVersion)\tools\net10.0-windows*\Stride.GameStudio.exe" />
+      <_GameStudioExe Include="$(NuGetPackagesRoot)\stride.gamestudio\$(GameStudioVersion)\tools\net11.0-windows*\Stride.GameStudio.exe" />
     </ItemGroup>
     <PropertyGroup>
       <_GameStudioExePath>@(_GameStudioExe)</_GameStudioExePath>

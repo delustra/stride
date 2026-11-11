@@ -92,13 +92,13 @@ public class PluginTemplateTests
         Assert.DoesNotContain("was not found", build.Output);
         // The runtime declares the asset file extension its Assets companion's asset type compiles to
         Assert.DoesNotContain("STRDIAG014", build.Output);
-        Assert.True(File.Exists(Path.Combine(solutionDir, pluginName + ".Assets", "bin", "Debug", "net10.0", pluginName + ".Assets.dll")), "The executable must build the Assets companion.");
+        Assert.True(File.Exists(Path.Combine(solutionDir, pluginName + ".Assets", "bin", "Debug", "net11.0", pluginName + ".Assets.dll")), "The executable must build the Assets companion.");
         // The game's outputs go under the solution's Bin folder
         Assert.Empty(Directory.GetFiles(Path.Combine(solutionDir, "Bin"), pluginName + ".Assets.dll", SearchOption.AllDirectories));
         Assert.NotEmpty(Directory.GetFiles(Path.Combine(solutionDir, "Bin"), pluginName + ".dll", SearchOption.AllDirectories));
 
         // The reloaded solution in Game Studio: the runtime declares both companions, found as solution projects. The Editor
-        // project is toolkit-neutral (net10.0, Stride.Assets.Editor), so it builds with the game on every platform.
+        // project is toolkit-neutral (net11.0, Stride.Assets.Editor), so it builds with the game on every platform.
         var reloaded = new PackageSessionResult();
         loadParameters.LoadEditorPackages = true;
         loadParameters.EditorToolkit = "Wpf";

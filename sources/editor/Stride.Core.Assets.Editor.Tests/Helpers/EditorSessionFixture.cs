@@ -270,7 +270,7 @@ public sealed class EditorSessionFixture : IDisposable
             : string.Empty;
         return "<Project Sdk=\"Microsoft.NET.Sdk\">" + Environment.NewLine +
             "  <PropertyGroup>" + Environment.NewLine +
-            "    <TargetFramework>net10.0</TargetFramework>" + Environment.NewLine +
+            "    <TargetFramework>net11.0</TargetFramework>" + Environment.NewLine +
             executable +
             "    <StrideContainsAssetTypes>false</StrideContainsAssetTypes>" + Environment.NewLine +
             "  </PropertyGroup>" + Environment.NewLine +

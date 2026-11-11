@@ -23,7 +23,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 11.0.x
 
       # PackageStore reads only the user and machine NuGet configs, so the asset compiler's upgrade needs this.
       - name: Register bin/packages with user NuGet config

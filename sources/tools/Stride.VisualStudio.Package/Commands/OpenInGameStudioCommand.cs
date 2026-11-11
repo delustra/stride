@@ -65,7 +65,7 @@ internal sealed class OpenInGameStudioCommand : Command
                 UseShellExecute = false,
                 WorkingDirectory = Path.GetDirectoryName(gameStudio)!,
             };
-            // The net8 host exports DOTNET_ROOT*/DOTNET_HOST_PATH; a net10 apphost (Game Studio) that inherits
+            // The net8 host exports DOTNET_ROOT*/DOTNET_HOST_PATH; a net11 apphost (Game Studio) that inherits
             // them fails with "install .NET". Strip them so it resolves .NET from the machine install.
             foreach (var variable in new[] { "DOTNET_ROOT", "DOTNET_ROOT(x86)", "DOTNET_ROOT_X64", "DOTNET_ROOT_ARM64", "DOTNET_HOST_PATH" })
                 startInfo.Environment.Remove(variable);

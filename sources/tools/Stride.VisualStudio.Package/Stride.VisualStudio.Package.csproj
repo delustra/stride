@@ -38,16 +38,16 @@
     <Compile Include="..\..\shared\Stride.NuGetResolver\ProjectVersionReader.cs" Link="Shared\ProjectVersionReader.cs" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Build-order only (this net8 package never references the net10 CLI assembly): pulls Stride.Cli into the
-         same MSBuild invocation so its shared Stride.Core (net10) is built once and deduped against the rest of
+    <!-- Build-order only (this net8 package never references the net11 CLI assembly): pulls Stride.Cli into the
+         same MSBuild invocation so its shared Stride.Core (net11) is built once and deduped against the rest of
          the solution, instead of the BundleStrideCli publish racing a concurrent build over Stride.Core's obj. -->
     <ProjectReference Include="..\..\launcher\Stride.Cli\Stride.Cli.csproj"
                       ReferenceOutputAssembly="false"
                       SkipGetTargetFrameworkProperties="true"
                       Private="false" />
   </ItemGroup>
-  <!-- Bundle the (net10) stride CLI into the VSIX under tools\stride\ so the extension can spawn it. Publishing
-       framework-dependent keeps it small; it runs on the machine's .NET 10 install. -->
+  <!-- Bundle the (net11) stride CLI into the VSIX under tools\stride\ so the extension can spawn it. Publishing
+       framework-dependent keeps it small; it runs on the machine's .NET 11 install. -->
   <!-- DependsOnTargets=ResolveProjectReferences builds the Stride.Cli reference first, so the publish below is a
        no-op incremental over already-built outputs. BuildProjectReferences=false then stops the publish from
        rebuilding (and locking) the shared Stride.Core; it only gathers Stride.Cli's framework-dependent closure. -->
@@ -56,7 +56,7 @@
       <_StrideCliProject>$(MSBuildThisFileDirectory)..\..\launcher\Stride.Cli\Stride.Cli.csproj</_StrideCliProject>
       <_StrideCliPublishDir>$(IntermediateOutputPath)stride-cli</_StrideCliPublishDir>
     </PropertyGroup>
-    <Exec Command="dotnet publish &quot;$(_StrideCliProject)&quot; -f net10.0 -c $(Configuration) -o &quot;$(_StrideCliPublishDir)&quot; -p:BuildProjectReferences=false --nologo -v quiet" />
+    <Exec Command="dotnet publish &quot;$(_StrideCliProject)&quot; -f net11.0 -c $(Configuration) -o &quot;$(_StrideCliPublishDir)&quot; -p:BuildProjectReferences=false --nologo -v quiet" />
     <ItemGroup>
       <Content Include="$(_StrideCliPublishDir)\**\*">
         <Link>tools\stride\%(RecursiveDir)%(Filename)%(Extension)</Link>

@@ -12,7 +12,7 @@
     <StrideGraphicsRegression>true</StrideGraphicsRegression>
     <!-- Forwarded to each suite ref: drop its launcher/entry point but keep asset compile +
          native-lib copy active, align suites onto the meta's TFM, keep macOS-opted suites off
-         net10.0-macos. Stride.Build.Sdk.Tests stops these globals propagating past the suite itself. -->
+         net11.0-macos. Stride.Build.Sdk.Tests stops these globals propagating past the suite itself. -->
     <_StrideSuiteRefProperties>IncludeXunitLauncher=false;OutputType=Library;StrideIsExecutable=true;StrideTestPlatforms=$(StrideTestPlatforms);StrideExplicitMacOSRuntime=false</_StrideSuiteRefProperties>
   </PropertyGroup>
   <ItemGroup>

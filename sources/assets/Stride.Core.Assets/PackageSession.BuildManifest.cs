@@ -461,7 +461,7 @@ partial class PackageSession
     /// Picks, per declared asset assembly, the single build matching this asset compiler's runtime.
     /// </summary>
     /// <remarks>
-    /// A package may declare its asset assembly built for several host TFMs (net10.0, net10.0-windows*).
+    /// A package may declare its asset assembly built for several host TFMs (net11.0, net11.0-windows*).
     /// On Windows the -windows build is preferred, else the base (netX.0, no platform suffix); on other hosts
     /// only the base loads. Untagged legacy entries load unconditionally. Entries are grouped by file name so
     /// a package declaring multiple distinct assemblies resolves one host build per assembly.

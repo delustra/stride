@@ -144,7 +144,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 11.0.x
 
       - name: Install Apple Workloads
         # VS provisions the android workload but not ios/macos.

@@ -75,7 +75,7 @@ internal sealed class LegacyShaderCodeGenerator : IDisposable
     private static string? LocateCommandsExecutable(PackageVersion version)
     {
         var range = new VersionRange(new NuGetVersion(version.Version, version.SpecialVersion));
-        foreach (var framework in new[] { "net10.0-windows7.0", "net8.0-windows7.0", "net6.0-windows7.0", "net472" })
+        foreach (var framework in new[] { "net11.0-windows7.0", "net10.0-windows7.0", "net8.0-windows7.0", "net6.0-windows7.0", "net472" })
         {
             var (_, result) = RestoreHelper.Restore(NullLogger.Instance, NuGetFramework.ParseFolder(framework), "win", CommandsPackageId, range);
             if (!result.Success)

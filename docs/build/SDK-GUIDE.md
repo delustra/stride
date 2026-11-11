@@ -125,7 +125,7 @@ The SDKs were first NuGet packages, used as `<Project Sdk="Stride.Build.Sdk">` (
 </Project>
 ```
 
-A test that must run on multiple platforms imports `Stride.Build.Sdk.MultiPlatform.Tests` instead and declares `<TargetFrameworks>$(StrideTestTargetFrameworks)</TargetFrameworks>` (the `…MacOS` variant to also build `net10.0-macos`). That set is computed from `$(StrideTestPlatforms)` — see [Property Evaluation Order](#property-evaluation-order).
+A test that must run on multiple platforms imports `Stride.Build.Sdk.MultiPlatform.Tests` instead and declares `<TargetFrameworks>$(StrideTestTargetFrameworks)</TargetFrameworks>` (the `…MacOS` variant to also build `net11.0-macos`). That set is computed from `$(StrideTestPlatforms)` — see [Property Evaluation Order](#property-evaluation-order).
 
 ---
 
@@ -139,7 +139,7 @@ sources/sdk/
 |   +-- Sdk/
 |       +-- Sdk.props                          # Entry point (before project file)
 |       +-- Sdk.targets                        # Entry point (after project file)
-|       +-- Stride.Frameworks.props            # Framework constants (net10.0, net10.0-android, ...)
+|       +-- Stride.Frameworks.props            # Framework constants (net11.0, net11.0-android, ...)
 |       +-- Stride.Frameworks.targets          # Per-TFM StrideTargetFramework/StridePlatform re-derivation
 |       +-- Stride.Platform.props              # Platform detection, output paths, runtime TargetFrameworks sets
 |       +-- Stride.Platform.targets            # Platform-specific compiler defines
@@ -320,12 +320,12 @@ Stride.Build.Sdk/Sdk/Sdk.targets (top)
 
 | Property | Value | Purpose |
 |----------|-------|---------|
-| `StrideFramework` | `net10.0` | Base target framework |
-| `StrideFrameworkWindows` | `net10.0-windows` | Windows-specific TFM |
-| `StrideFrameworkAndroid` | `net10.0-android` | Android TFM |
-| `StrideFrameworkiOS` | `net10.0-ios` | iOS TFM |
-| `StrideEditorTargetFramework` | `net10.0-windows` | Editor TFM (WPF) |
-| `StrideXplatEditorTargetFramework` | `net10.0` | Cross-platform editor TFM |
+| `StrideFramework` | `net11.0` | Base target framework |
+| `StrideFrameworkWindows` | `net11.0-windows` | Windows-specific TFM |
+| `StrideFrameworkAndroid` | `net11.0-android` | Android TFM |
+| `StrideFrameworkiOS` | `net11.0-ios` | iOS TFM |
+| `StrideEditorTargetFramework` | `net11.0-windows` | Editor TFM (WPF) |
+| `StrideXplatEditorTargetFramework` | `net11.0` | Cross-platform editor TFM |
 
 ### UI Framework
 
@@ -345,7 +345,7 @@ Defines: `STRIDE_UI_SDL`, `STRIDE_UI_WINFORMS`, `STRIDE_UI_WPF`.
 Projects with `StrideGraphicsApiDependent=true` build separate binaries per API:
 
 ```
-bin/Release/net10.0/
+bin/Release/net11.0/
     Direct3D11/Stride.Graphics.dll
     Direct3D12/Stride.Graphics.dll
     Vulkan/Stride.Graphics.dll
@@ -441,7 +441,7 @@ Preprocess a project to see the fully expanded MSBuild XML:
 
 ```bash
 dotnet msbuild -preprocess:output.xml sources\core\Stride.Core\Stride.Core.csproj
-dotnet msbuild -property:TargetFramework=net10.0 -preprocess:output.xml sources\core\Stride.Core\Stride.Core.csproj
+dotnet msbuild -property:TargetFramework=net11.0 -preprocess:output.xml sources\core\Stride.Core\Stride.Core.csproj
 ```
 
 Verbose build output:

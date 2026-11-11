@@ -758,7 +758,7 @@ public class CompanionPackageTests
                 """);
         }
 
-        public string ConsumerBinDir => Path.Combine(consumerDir, "bin", "Debug", "net10.0");
+        public string ConsumerBinDir => Path.Combine(consumerDir, "bin", "Debug", "net11.0");
 
         /// <summary>
         /// A copy of the Assets fixture under another id, taking the plugin from the feed: the game references it
@@ -929,7 +929,7 @@ public class CompanionPackageTests
             var index = File.ReadAllText(Directory.GetFiles(dbDir, "index.Consumer.*").Single(f => !f.EndsWith(".closure")));
             Assert.Matches($@"(?m)^{url} ", index);
 
-            var binDir = Path.Combine(consumerDir, "bin", "Debug", "net10.0");
+            var binDir = Path.Combine(consumerDir, "bin", "Debug", "net11.0");
             var run = Dotnet.Exec(["exec", Path.Combine(binDir, "Consumer.dll"), url], binDir, output, timeoutMin: 2);
             Assert.True(run.ExitCode == 0, $"Consumer runtime content check failed (exit {run.ExitCode}).");
             Assert.Contains($"CONTENT OK {url}", run.Output);
@@ -939,7 +939,7 @@ public class CompanionPackageTests
         public PackageSession LoadConsumerSession()
         {
             PackageSessionPublicHelper.FindAndSetMSBuildVersion();
-            var manifest = Path.Combine(consumerDir, "Consumer.Game", "obj", "Debug", "net10.0", "Consumer.Game.sdbuild");
+            var manifest = Path.Combine(consumerDir, "Consumer.Game", "obj", "Debug", "net11.0", "Consumer.Game.sdbuild");
             var result = new PackageSessionResult();
             PackageSession.LoadFromBuildManifest(manifest, result);
             return CheckSession(result);
@@ -952,7 +952,7 @@ public class CompanionPackageTests
         public PackageSession LoadConsumerExecutableSession()
         {
             PackageSessionPublicHelper.FindAndSetMSBuildVersion();
-            var manifest = Path.Combine(consumerDir, "obj", "Debug", "net10.0", "Consumer.sdbuild");
+            var manifest = Path.Combine(consumerDir, "obj", "Debug", "net11.0", "Consumer.sdbuild");
             var result = new PackageSessionResult();
             PackageSession.LoadFromBuildManifest(manifest, result, new PackageLoadParameters { LoadAssemblyReferences = false, AutoLoadTemporaryAssets = false });
             return CheckSession(result);

@@ -77,7 +77,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 11.0.x
 
       - uses: microsoft/setup-msbuild@v3
 
@@ -198,7 +198,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 11.0.x
 
       - name: Download launcher artifacts
         uses: actions/download-artifact@v8
