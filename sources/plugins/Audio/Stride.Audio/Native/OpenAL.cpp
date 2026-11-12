@@ -2,6 +2,7 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 #include "Common.h"
+#include "Allocation.h"
 
 #if defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS) || defined(IOS) || !defined(__clang__)
 
@@ -9,7 +10,6 @@
 #include "../../../deps/NativePath/NativeDynamicLinking.h"
 #include "../../../deps/NativePath/NativeMemory.h"
 #include "../../../deps/NativePath/NativeThreading.h"
-#include "Allocation.h"
 #include "../../../deps/NativePath/TINYSTL/unordered_set.h"
 #include "../../../deps/NativePath/TINYSTL/unordered_map.h"
 #include "../../../deps/NativePath/TINYSTL/vector.h"

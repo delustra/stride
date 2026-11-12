@@ -1,8 +1,9 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net) and Silicon Studio Corp. (https://www.siliconstudio.co.jp)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
-#include "../../../deps/NativePath/NativePath.h"
 #include "Allocation.h"
+
+#include "../../../deps/NativePath/NativePath.h"
 #include "../../../../engine/Stride.Native/StrideNative.h"
 #define HAVE_STDINT_H
 #include "../../../../../deps/Celt/include/opus_custom.h"
