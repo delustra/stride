@@ -31,10 +31,6 @@ them.
 | .NET 11 | `crafter` only | fork-only | The engine, editors, tools, tests, samples and templates target `net11.0` (`StrideFramework` and the TFMs derived from it), `global.json` pins SDK 11.0.100 and the CI workflows set up 11.0.x; the framework packages are on 11.0.0 (System.Text.Json, System.Management, Microsoft.Extensions.DependencyModel) the SDK-band ones on 11.0.100 (TemplateEngine, SourceLink, ApiCompat) and NuGet.* on 8.0.0, the version SDK 11 ships. The asset compiler's runtime config template no longer passes `GenerateRuntimeConfigDevFile`, which SDK 11 removed, and the NuGet resolver's bootstrap set takes `Microsoft.Extensions.FileProviders.Abstractions` and `Primitives` only when the build copies them (they are part of the .NET 11 runtime). `deps/AssemblyProcessor/net10.0` stays: the build loads the netstandard2.0 one |
 | Pack (Crafter) workflow | `crafter` only | fork-only | `.github/workflows/pack-crafter.yml` builds a ref's NuGet packages for Windows and Linux as `<MajorMinor.Patch>-dev.<run>` and publishes them to the `engine-packages-<ref>` release |
 
-Pending: [#3758](https://github.com/stride3d/stride/pull/3758) (Heightfield), the last of the stack
-[#3750](https://github.com/stride3d/stride/pull/3750)–#3758 that replaces the closed [#3512](https://github.com/stride3d/stride/pull/3512);
-the rest of it is upstream.
-
 To update `crafter`, merge upstream `master` into it, then merge again each change's branch that moved.
 When a change lands upstream, its row goes. Every merge into `crafter` keeps this table in step.
 
