@@ -14,7 +14,7 @@ public sealed class TestSessionOpening
     [Fact]
     public async Task OpeningAPackageLoadsItsAssets()
     {
-        await using var fixture = await EditorSessionFixture.OpenAsync(("Textures/Wood", "wood"), ("Textures/Stone", "stone"), ("Models/Tree", "tree"));
+        await using var fixture = await EditorSessionFixture.OpenWithMSBuildAsync(("Textures/Wood", "wood"), ("Textures/Stone", "stone"), ("Models/Tree", "tree"));
         var session = fixture.Session;
 
         Assert.False(fixture.Result.HasErrors, fixture.Log);
@@ -71,13 +71,13 @@ public sealed class TestSessionOpening
     {
         await using var fixture = await EditorSessionFixture.OpenAsync(("Textures/Wood", "wood"));
 
-        var undoRedo = fixture.ServiceProvider.Get<IUndoRedoService>();
+        var undoRedo = fixture.Session.ServiceProvider.Get<IUndoRedoService>();
         Assert.Same(undoRedo, fixture.Session.UndoRedoService);
         Assert.Equal(200, undoRedo.Capacity);
         Assert.False(undoRedo.CanUndo);
-        Assert.NotNull(fixture.ServiceProvider.TryGet<ICopyPasteService>());
-        Assert.NotNull(fixture.ServiceProvider.TryGet<SelectionService>());
-        Assert.NotNull(fixture.ServiceProvider.TryGet<UserDocumentationService>());
+        Assert.NotNull(fixture.Session.ServiceProvider.TryGet<ICopyPasteService>());
+        Assert.NotNull(fixture.Session.ServiceProvider.TryGet<SelectionService>());
+        Assert.NotNull(fixture.Session.ServiceProvider.TryGet<UserDocumentationService>());
         Assert.Empty(fixture.Session.ActionHistory.Transactions);
     }
 

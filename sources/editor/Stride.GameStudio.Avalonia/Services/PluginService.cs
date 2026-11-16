@@ -17,8 +17,8 @@ namespace Stride.GameStudio.Avalonia.Services;
 
 /// <summary>
 /// Registers the plugins of all asset assemblies with the session, including assemblies loaded after it opened, and
-/// removes what a plugin registered when its assembly is unloaded. The Avalonia side of the <see cref="EditorPluginHost"/>
-/// shared with the WPF Game Studio: the template providers go to the property grid's <see cref="PropertyViewHelper"/>
+/// removes what a plugin registered when its assembly is unloaded. The Avalonia side of the shared
+/// <see cref="EditorPluginHost"/>: the template providers go to the property grid's <see cref="PropertyViewHelper"/>
 /// selectors, the editor views are <see cref="IAssetEditorView"/>s and the declared images Avalonia bitmaps.
 /// </summary>
 /// <remarks>
@@ -34,9 +34,6 @@ internal sealed class PluginService : SceneEditorPluginHost
     {
         this.dispatcherService = dispatcherService;
     }
-
-    /// <inheritdoc />
-    protected override Type AssetEditorViewModelType => typeof(AssetEditorViewModel);
 
     /// <inheritdoc />
     protected override Type AssetEditorViewType => typeof(IAssetEditorView);
@@ -69,9 +66,6 @@ internal sealed class PluginService : SceneEditorPluginHost
         using var stream = new MemoryStream(data);
         return new Bitmap(stream);
     }
-
-    /// <inheritdoc />
-    protected override bool IsEditorInitialized(ISessionViewModel session) => session is SessionViewModel { IsEditorInitialized: true };
 
     // The property grid selector a provider belongs to, by its template category
     private static TemplateProviderSelector GetSelector(TemplateProviderBase provider)

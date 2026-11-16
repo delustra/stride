@@ -19,6 +19,7 @@ using Stride.Editor.Settings;
 using Stride.GameStudio.Avalonia.Settings;
 using Stride.GameStudio.Avalonia.Tests.Helpers;
 using Stride.GameStudio.Avalonia.Views;
+using Stride.Assets.Editor.AssetEditors.GameEditor.Services;
 using Stride.Assets.Editor.SceneEditor;
 using Stride.Assets.Editor.ViewModels;
 using Stride.Core.Settings;
@@ -131,13 +132,13 @@ public sealed class SettingsCompatibilityTests : IDisposable
         File.WriteAllText(path, WpfInternalSettings);
 
         var container = InternalSettings.SettingsContainer;
-        // A profile that isn't registered in the container doesn't get the keys registered after it loads: the static constructor
-        // registers them, whatever test ran before
-        RegisterKeys(typeof(GameStudioInternalSettings));
+        // A profile that isn't registered in the container doesn't get the keys registered after it loads: the static constructors
+        // register them, whatever test ran before
+        RegisterKeys(typeof(GameStudioInternalSettings), typeof(RecentSessionsSettings));
         var profile = container.LoadSettingsProfile(path, false, null, false);
         Assert.NotNull(profile);
         // What a session kept: its editors open again here
-        var data = Assert.Single(GameStudioInternalSettings.MostRecentlyUsedSessionsData.GetValue(profile, true));
+        var data = Assert.Single(RecentSessionsSettings.MostRecentlyUsedSessionsData.GetValue(profile, true));
         Assert.Equal(new UFile("C:/Projects/MyGame/MyGame.sln"), data.FilePath);
         Assert.Equal([AssetId.Parse(OpenedAsset)], data.OpenedAssets);
         // The window of the WPF editor is not this editor's
@@ -150,7 +151,7 @@ public sealed class SettingsCompatibilityTests : IDisposable
         var layouts = new SessionPanelLayouts { FilePath = data.FilePath, Timestamp = 1, Normal = DefaultPanelLayouts.Create(PanelLayoutKind.Normal) };
         GameStudioInternalSettings.SessionLayouts.SetValue([layouts], profile);
         data.OpenedAssets.Clear();
-        GameStudioInternalSettings.MostRecentlyUsedSessionsData.SetValue([data], profile);
+        RecentSessionsSettings.MostRecentlyUsedSessionsData.SetValue([data], profile);
         Assert.True(container.SaveSettingsProfile(profile, path));
 
         var saved = File.ReadAllText(path);
@@ -175,14 +176,13 @@ public sealed class SettingsCompatibilityTests : IDisposable
         Assert.Equal(data.FilePath, reloadedLayouts.FilePath);
         Assert.Equal(DefaultPanelLayouts.Create(PanelLayoutKind.Normal).EnumeratePanels(), reloadedLayouts.Normal!.EnumeratePanels());
         Assert.Null(reloadedLayouts.Editors);
-        Assert.Empty(Assert.Single(GameStudioInternalSettings.MostRecentlyUsedSessionsData.GetValue(reloaded, true)).OpenedAssets);
+        Assert.Empty(Assert.Single(RecentSessionsSettings.MostRecentlyUsedSessionsData.GetValue(reloaded, true)).OpenedAssets);
     }
 
     [AvaloniaFact]
-    public async Task TheSettingsWindowShowsTheCategoriesOfTheWpfEditorAndItsResetLayoutButton()
+    public async Task TheSettingsWindowShowsTheSharedCategoriesAndTheResetLayoutButton()
     {
-        // The settings of the scene and script editors come with their plugin, which joins the session (WPF has one whenever its
-        // settings window can open)
+        // The settings of the scene and script editors come with their plugin, which joins the session
         using var fixture = await ShellSessionFixture.OpenAsync(("Sheet", new Stride.Assets.Sprite.SpriteSheetAsset()));
         var serviceProvider = fixture.ServiceProvider;
         var window = new SettingsWindow { DataContext = new SettingsViewModel(serviceProvider, EditorSettings.SettingsContainer.CurrentProfile) };
@@ -194,14 +194,14 @@ public sealed class SettingsCompatibilityTests : IDisposable
         {
             var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
             var names = viewModel.Categories.Select(x => x.Name).ToList();
-            // The categories of WPF but Themes (roadmap row 16), UI editor (no Avalonia UI editor yet) and Test (DEBUG builds)
+            // The shared categories but Themes (roadmap row 16), UI editor (no Avalonia UI editor yet) and Test (DEBUG builds)
             Assert.Contains(ExternalToolsSettings.ExternalTools, names);
             Assert.Contains(RemoteSettings.Remote, names);
             Assert.Contains(SceneEditorSettings.SceneEditor, names);
             Assert.Contains("Script editor", names);
             Assert.Contains("Interface", names);
 
-            // Interface > Reset Game Studio layout is a button, as in WPF
+            // Interface > Reset Game Studio layout is a button
             viewModel.SelectedCategory = viewModel.Categories.Single(x => x.Name == "Interface");
             Button? reset = null;
             await WindowTestHelper.WaitUntilAsync(() => (reset = window.GetVisualDescendants().OfType<Button>().FirstOrDefault(x => Equals(x.Content, "Reset"))) is not null, "the Reset button");
@@ -225,30 +225,30 @@ public sealed class SettingsCompatibilityTests : IDisposable
     [AvaloniaFact]
     public void SavingTheInternalSettingsKeepsTheRecentSessionsAnotherEditorWrote()
     {
-        var previousSessions = GameStudioInternalSettings.MostRecentlyUsedSessions.GetValue();
+        var previousSessions = RecentSessionsSettings.MostRecentlyUsedSessions.GetValue();
         var previousDirectory = InternalSettings.FileDialogLastImportDirectory.GetValue();
         try
         {
             // Another editor instance adds a session to the file
             var other = InternalSettings.LoadProfileCopy();
             var sessions = new MRUDictionary { ["4.5"] = [new MostRecentlyUsedFile(new UFile("C:/Projects/Other/Other.sln"))] };
-            GameStudioInternalSettings.MostRecentlyUsedSessions.SetValue(sessions, other);
+            RecentSessionsSettings.MostRecentlyUsedSessions.SetValue(sessions, other);
             Assert.True(InternalSettings.SettingsContainer.SaveSettingsProfile(other, EditorPath.InternalConfigPath));
 
             // This one, which read the file before, saves another internal setting
-            GameStudioInternalSettings.MostRecentlyUsedSessions.SetValue(new MRUDictionary());
+            RecentSessionsSettings.MostRecentlyUsedSessions.SetValue(new MRUDictionary());
             InternalSettings.FileDialogLastImportDirectory.SetValue("C:/Imports");
             InternalSettings.Save();
 
             var saved = InternalSettings.LoadProfileCopy();
             Assert.Equal("C:/Imports", InternalSettings.FileDialogLastImportDirectory.GetValue(saved, true));
-            var file = Assert.Single(Assert.Single(GameStudioInternalSettings.MostRecentlyUsedSessions.GetValue(saved, true)).Value);
+            var file = Assert.Single(Assert.Single(RecentSessionsSettings.MostRecentlyUsedSessions.GetValue(saved, true)).Value);
             Assert.Equal(new UFile("C:/Projects/Other/Other.sln"), file.FilePath);
-            Assert.Single(Assert.Single(GameStudioInternalSettings.MostRecentlyUsedSessions.GetValue()).Value);
+            Assert.Single(Assert.Single(RecentSessionsSettings.MostRecentlyUsedSessions.GetValue()).Value);
         }
         finally
         {
-            GameStudioInternalSettings.MostRecentlyUsedSessions.SetValue(previousSessions);
+            RecentSessionsSettings.MostRecentlyUsedSessions.SetValue(previousSessions);
             InternalSettings.FileDialogLastImportDirectory.SetValue(previousDirectory);
             InternalSettings.SaveProfile();
         }
@@ -338,6 +338,90 @@ public sealed class SettingsCompatibilityTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void TheShortcutOverridesPassThroughAWpfEditorThatDoesNotKnowThemAsTheyAre()
+    {
+        var path = Path.Combine(directory, "GameStudioSettings.conf");
+        File.WriteAllText(path, WpfSettings);
+
+        // A file without them: no override
+        var container = new SettingsContainer();
+        var key = new SettingsKey<Dictionary<string, string>>(GameStudioEditorSettings.ShortcutOverrides.Name, container, () => new Dictionary<string, string>());
+        var profile = container.LoadSettingsProfile(path, false, null, false);
+        Assert.NotNull(profile);
+        Assert.Empty(key.GetValue(profile, true));
+
+        // This editor writes the user's shortcuts, under a key of its own
+        var overrides = new Dictionary<string, string>
+        {
+            ["Stride.File.Save"] = "Ctrl+Alt+S",
+            ["Stride.Edit.Delete"] = "None",
+            ["MyPlugin.Command"] = "",
+        };
+        key.SetValue(overrides, profile);
+        Assert.True(container.SaveSettingsProfile(profile, path));
+        Assert.Contains("Shortcuts/Overrides:", File.ReadAllText(path));
+
+        // The WPF editor knows its own settings only: it changes one and saves
+        var wpfContainer = new SettingsContainer();
+        var wpfKey = new SettingsKey<bool>("Interface/AskBeforeDeletingAssets", wpfContainer, true);
+        var wpfProfile = wpfContainer.LoadSettingsProfile(path, false, null, false);
+        Assert.NotNull(wpfProfile);
+        Assert.False(wpfKey.GetValue(wpfProfile, true));
+        wpfKey.SetValue(true, wpfProfile);
+        Assert.True(wpfContainer.SaveSettingsProfile(wpfProfile, path));
+
+        // This editor reads them back as they were
+        var reloadedContainer = new SettingsContainer();
+        var reloadedKey = new SettingsKey<Dictionary<string, string>>(GameStudioEditorSettings.ShortcutOverrides.Name, reloadedContainer, () => new Dictionary<string, string>());
+        var reloaded = reloadedContainer.LoadSettingsProfile(path, false, null, false);
+        Assert.NotNull(reloaded);
+        var value = reloadedKey.GetValue(reloaded, true);
+        Assert.Equal("Ctrl+Alt+S", value["Stride.File.Save"]);
+        Assert.Equal("None", value["Stride.Edit.Delete"]);
+        Assert.True(string.IsNullOrEmpty(value["MyPlugin.Command"]));
+        Assert.Equal(3, value.Count);
+        var saved = File.ReadAllText(path);
+        Assert.Contains("Interface/AskBeforeDeletingAssets: true", saved);
+        Assert.Contains("Themes/ThemeName: DarkSteel", saved);
+    }
+
+    [AvaloniaFact]
+    public void TheRecentCommandsOfThePalettePassThroughAWpfEditorThatDoesNotKnowThemAsTheyAre()
+    {
+        var path = Path.Combine(directory, "GameStudioInternal.conf");
+        File.WriteAllText(path, WpfInternalSettings);
+
+        // A file without them: none
+        var container = new SettingsContainer();
+        var key = new SettingsKey<List<string>>(GameStudioInternalSettings.RecentCommands.Name, container, () => new List<string>());
+        var profile = container.LoadSettingsProfile(path, false, null, false);
+        Assert.NotNull(profile);
+        Assert.Empty(key.GetValue(profile, true));
+
+        // This editor writes them, under a key of its own
+        key.SetValue(["Stride.File.Save", "MyPlugin.Command"], profile);
+        Assert.True(container.SaveSettingsProfile(profile, path));
+        Assert.Contains("Internal/Avalonia/RecentCommands:", File.ReadAllText(path));
+
+        // The WPF editor knows its own settings only: it changes one and saves
+        var wpfContainer = new SettingsContainer();
+        var wpfKey = new SettingsKey<bool>("Internal/AssetPreviewPanelVisible", wpfContainer, true);
+        var wpfProfile = wpfContainer.LoadSettingsProfile(path, false, null, false);
+        Assert.NotNull(wpfProfile);
+        Assert.False(wpfKey.GetValue(wpfProfile, true));
+        wpfKey.SetValue(true, wpfProfile);
+        Assert.True(wpfContainer.SaveSettingsProfile(wpfProfile, path));
+
+        // This editor reads them back as they were
+        var reloadedContainer = new SettingsContainer();
+        var reloadedKey = new SettingsKey<List<string>>(GameStudioInternalSettings.RecentCommands.Name, reloadedContainer, () => new List<string>());
+        var reloaded = reloadedContainer.LoadSettingsProfile(path, false, null, false);
+        Assert.NotNull(reloaded);
+        Assert.Equal(["Stride.File.Save", "MyPlugin.Command"], reloadedKey.GetValue(reloaded, true));
+        Assert.Contains("Internal/AssetPreviewPanelVisible: true", File.ReadAllText(path));
+    }
+
+    [AvaloniaFact]
     public void TheExtensionsPassThroughAWpfEditorThatDoesNotKnowThemAsTheyAre()
     {
         var path = Path.Combine(directory, "GameStudioInternal.conf");
@@ -375,6 +459,82 @@ public sealed class SettingsCompatibilityTests : IDisposable
         var saved = File.ReadAllText(path);
         Assert.Contains("Internal/WindowWidth: 1300", saved);
         Assert.Contains("DockingLayoutVersion: 9", saved);
+    }
+
+    [AvaloniaFact]
+    public void TheViewsOfAScenePassThroughTheWpfEditorAsTheyAre()
+    {
+        var path = Path.Combine(directory, "MyGame.sdpkg.user");
+        var sceneId = AssetId.New();
+
+        // This editor saves a scene shown in four views: the scene settings, which both editors share, and the views, under a
+        // key of their own
+        var container = new SettingsContainer();
+        var sceneSettings = new SettingsKey<Dictionary<AssetId, SceneSettingsData>>(PackageSceneSettings.SceneSettings.Name, container, () => new Dictionary<AssetId, SceneSettingsData>());
+        var sceneViews = new SettingsKey<Dictionary<AssetId, SceneViewsSettingsData>>(PackageSceneViews.Views.Name, container, () => new Dictionary<AssetId, SceneViewsSettingsData>());
+        var profile = container.CreateSettingsProfile(true);
+        sceneSettings.SetValue(new Dictionary<AssetId, SceneSettingsData> { [sceneId] = new() { CamMoveSpeed = 3 } }, profile);
+        sceneViews.SetValue(new Dictionary<AssetId, SceneViewsSettingsData>
+        {
+            [sceneId] = new()
+            {
+                Layout = EditorViewLayout.Quad,
+                MaximizedView = 2,
+                Views =
+                [
+                    new() { Camera = EditorViewCamera.Top, HasCameraState = true, CamPosition = new(0, 50, 0), CamProjection = Stride.Engine.Processors.CameraProjectionMode.Orthographic, CamOrthographicSize = 25 },
+                    new() { Camera = EditorViewCamera.Front },
+                    new() { Camera = EditorViewCamera.Left },
+                ],
+            },
+        }, profile);
+        Assert.True(container.SaveSettingsProfile(profile, path));
+        Assert.Contains("Package/SceneViews", File.ReadAllText(path));
+
+        // The WPF editor knows the scene settings only, which have no member for the views: it changes them and saves
+        var wpfContainer = new SettingsContainer();
+        var wpfSceneSettings = new SettingsKey<Dictionary<AssetId, SceneSettingsData>>(PackageSceneSettings.SceneSettings.Name, wpfContainer, () => new Dictionary<AssetId, SceneSettingsData>());
+        var wpfProfile = wpfContainer.LoadSettingsProfile(path, false, null, false);
+        Assert.NotNull(wpfProfile);
+        var wpfValue = new Dictionary<AssetId, SceneSettingsData>(wpfSceneSettings.GetValue(wpfProfile, true));
+        Assert.Equal(3, wpfValue[sceneId].CamMoveSpeed);
+        wpfValue[sceneId].CamMoveSpeed = 5;
+        wpfSceneSettings.SetValue(wpfValue, wpfProfile);
+        Assert.True(wpfContainer.SaveSettingsProfile(wpfProfile, path));
+
+        // This editor reads both back: the views as it left them
+        var reloadedContainer = new SettingsContainer();
+        var reloadedSceneSettings = new SettingsKey<Dictionary<AssetId, SceneSettingsData>>(PackageSceneSettings.SceneSettings.Name, reloadedContainer, () => new Dictionary<AssetId, SceneSettingsData>());
+        var reloadedViews = new SettingsKey<Dictionary<AssetId, SceneViewsSettingsData>>(PackageSceneViews.Views.Name, reloadedContainer, () => new Dictionary<AssetId, SceneViewsSettingsData>());
+        var reloaded = reloadedContainer.LoadSettingsProfile(path, false, null, false);
+        Assert.NotNull(reloaded);
+        Assert.Equal(5, reloadedSceneSettings.GetValue(reloaded, true)[sceneId].CamMoveSpeed);
+        var views = reloadedViews.GetValue(reloaded, true)[sceneId];
+        Assert.Equal((EditorViewLayout.Quad, 2), (views.Layout, views.MaximizedView));
+        Assert.Equal([EditorViewCamera.Top, EditorViewCamera.Front, EditorViewCamera.Left], views.Views.Select(x => x.Camera));
+        Assert.Equal((true, 25f), (views.Views[0].HasCameraState, views.Views[0].CamOrthographicSize));
+    }
+
+    [AvaloniaFact]
+    public void ASceneTheWpfEditorSavedOpensWithOneView()
+    {
+        var path = Path.Combine(directory, "MyGame.sdpkg.user");
+        var sceneId = AssetId.New();
+
+        // The WPF editor writes the scene settings only
+        var wpfContainer = new SettingsContainer();
+        var wpfSceneSettings = new SettingsKey<Dictionary<AssetId, SceneSettingsData>>(PackageSceneSettings.SceneSettings.Name, wpfContainer, () => new Dictionary<AssetId, SceneSettingsData>());
+        var wpfProfile = wpfContainer.CreateSettingsProfile(true);
+        wpfSceneSettings.SetValue(new Dictionary<AssetId, SceneSettingsData> { [sceneId] = new() { CamMoveSpeed = 7 } }, wpfProfile);
+        Assert.True(wpfContainer.SaveSettingsProfile(wpfProfile, path));
+
+        // This editor finds no views for the scene: it opens with one view
+        var container = new SettingsContainer();
+        var sceneViews = new SettingsKey<Dictionary<AssetId, SceneViewsSettingsData>>(PackageSceneViews.Views.Name, container, () => new Dictionary<AssetId, SceneViewsSettingsData>());
+        var profile = container.LoadSettingsProfile(path, false, null, false);
+        Assert.NotNull(profile);
+        Assert.False(sceneViews.GetValue(profile, true).ContainsKey(sceneId));
+        Assert.Equal(EditorViewLayout.Single, new SceneViewsSettingsData().Layout);
     }
 
     private static void RegisterKeys(params Type[] settingsTypes)

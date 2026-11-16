@@ -7,7 +7,7 @@
     <EnableDefaultItems>false</EnableDefaultItems>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\tests\xunit.runner.stride\xunit.runner.stride.csproj" />
+    <ProjectReference Include="..\..\tests\Stride.XunitRunner\Stride.XunitRunner.csproj" />
     <ProjectReference Include="..\Stride.Assets\Stride.Assets.csproj" />
     <ProjectReference Include="..\Stride.Assets.Models\Stride.Assets.Models.csproj" />
     <ProjectReference Include="..\Stride.Assets.Generators\Stride.Assets.Generators.csproj" />
@@ -29,6 +29,7 @@
       <Link>GuidGenerator.cs</Link>
     </Compile>
     <Compile Include="TestAssetFileExtensionDeclarations.cs" />
+    <Compile Include="TestModelTextureImport.cs" />
     <Compile Include="TestHeightmapAssetCompatibility.cs" />
     <Compile Include="TestConvexHullMesh.cs" />
     <Compile Include="TestPluginPackageUpgrade.cs" />
@@ -57,6 +58,8 @@
     <Compile Include="TestModelAssetMorphTargetNames.cs" />
     <Compile Include="TestDependencyResolver.cs" />
     <Compile Include="TestEffectLogStore.cs" />
+    <Compile Include="TestShaderSourceFileProvider.cs" />
+    <Compile Include="TestSkyboxAssetCompiler.cs" />
     <Compile Include="TestPrefabAsset.cs" />
     <Compile Include="TestGraphicsCompositorUpgrader.cs" />
     <Compile Include="TestAssetUpgrade.cs" />

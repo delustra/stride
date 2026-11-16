@@ -21,7 +21,7 @@ using Stride.Core.Assets.Presentation.ViewModels;
 namespace Stride.GameStudio.Avalonia.Tests;
 
 /// <summary>
-/// What opens with a session, as in WPF: the editors of the last session, or the default scene; the list of open editors is
+/// What opens with a session: the editors of the last session, or the default scene; the list of open editors is
 /// kept in the internal settings that both editors share.
 /// </summary>
 public sealed class SessionRestoreTests
@@ -124,16 +124,16 @@ public sealed class SessionRestoreTests
     }
 
     [AvaloniaFact]
-    public async Task TheDataOfOtherSessionsAndTheLayoutsOfWpfAreKept()
+    public async Task TheDataOfOtherSessionsAndTheirDockingLayoutsAreKept()
     {
         using var fixture = ShellSessionFixture.Create(("Sheet", new SpriteSheetAsset()));
         var other = new MRUAdditionalData(Path.Combine(fixture.Directory, "Other", "Other.sln")) { DockingLayout = "<Layout />", DockingLayoutEditors = "<EditorLayout />", DockingLayoutVersion = 3 };
-        GameStudioInternalSettings.CreateMostRecentlyUsedSessionsData().UpdateData(other);
+        RecentSessionsSettings.CreateMostRecentlyUsedSessionsData().UpdateData(other);
 
         await fixture.OpenAsync();
         fixture.Session.EditorCollection.OpenAssetEditor(fixture.Asset("Sheet"));
 
-        var kept = GameStudioInternalSettings.CreateMostRecentlyUsedSessionsData().GetData(other.FilePath);
+        var kept = RecentSessionsSettings.CreateMostRecentlyUsedSessionsData().GetData(other.FilePath);
         Assert.NotNull(kept);
         Assert.Equal("<Layout />", kept.DockingLayout);
         Assert.Equal("<EditorLayout />", kept.DockingLayoutEditors);
@@ -143,11 +143,11 @@ public sealed class SessionRestoreTests
 
     private static void SetOpenedAssets(ShellSessionFixture fixture, params AssetId[] assets)
     {
-        GameStudioInternalSettings.CreateMostRecentlyUsedSessionsData().UpdateOpenedAssets(fixture.PackagePath, assets);
+        RecentSessionsSettings.CreateMostRecentlyUsedSessionsData().UpdateOpenedAssets(fixture.PackagePath, assets);
     }
 
     private static List<AssetId> OpenedAssets(ShellSessionFixture fixture)
     {
-        return GameStudioInternalSettings.CreateMostRecentlyUsedSessionsData().GetData(fixture.PackagePath)?.OpenedAssets.ToList() ?? [];
+        return RecentSessionsSettings.CreateMostRecentlyUsedSessionsData().GetData(fixture.PackagePath)?.OpenedAssets.ToList() ?? [];
     }
 }

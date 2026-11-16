@@ -21,19 +21,20 @@ using Stride.Core.Presentation.Quantum.Presenters;
 using Stride.Core.Presentation.ViewModels;
 using Stride.Assets.Editor.AssetEditors.GameEditor.Services;
 using Stride.Assets.Editor.AssetEditors.GameEditor.ViewModels;
+using Stride.Assets.Editor.AssetEditors.EntityHierarchyEditor;
+using Stride.Assets.Editor.AssetEditors.EntityHierarchyEditor.ViewModels;
 
 namespace Stride.Assets.Presentation.AssetEditors.EntityHierarchyEditor.ViewModels;
 
 /// <summary>
 /// The view options of the WPF scene and prefab editors: the camera, transformation, grid, overlay, lighting, rendering
 /// and gizmo options of the toolbar, the selection mask and material selection toggles, the camera preview of a scene,
-/// and what the property grid of an entity shows for its model and camera components.
+/// and what the property grid of an entity shows for its camera components.
 /// </summary>
 public sealed class WpfEditorViewOptions : DispatcherViewModel, IEditorViewOptions
 {
     private readonly EntityHierarchyEditorViewModel editor;
     private readonly EntityHierarchyEditorController controller;
-    private readonly Dictionary<AbsoluteId, ModelComponentViewModel> modelComponents = [];
     private readonly CameraComponentViewModel cameraComponent;
     private readonly DebugEntityHierarchyEditorUserControl debugPage;
 
@@ -159,8 +160,7 @@ public sealed class WpfEditorViewOptions : DispatcherViewModel, IEditorViewOptio
         EntityGizmos.LoadSettings(settings);
         DisplaySelectionMask = settings.SelectionMaskVisible;
         Grid.LoadSettings(settings);
-        Lighting.LightProbeWireframeVisible = settings.LightProbeWireframe;
-        Lighting.LightProbeBounces = settings.LightProbeBounces;
+        Lighting.LoadSettings(settings);
         MaterialSelectionMode = false;
         Overlays.LoadSettings(settings);
         Rendering.LoadSettings(settings);
@@ -177,8 +177,7 @@ public sealed class WpfEditorViewOptions : DispatcherViewModel, IEditorViewOptio
         Transform.SaveSettings(settings);
         settings.SelectionMaskVisible = DisplaySelectionMask;
         Grid.SaveSettings(settings);
-        settings.LightProbeWireframe = Lighting.LightProbeWireframeVisible;
-        settings.LightProbeBounces = Lighting.LightProbeBounces;
+        Lighting.SaveSettings(settings);
         Overlays.SaveSettings(settings);
         Rendering.SaveSettings(settings);
         EntityGizmos.SaveSettings(settings);
@@ -193,25 +192,14 @@ public sealed class WpfEditorViewOptions : DispatcherViewModel, IEditorViewOptio
     }
 
     /// <inheritdoc/>
+    /// <remarks>The model components follow their model with the shared <c>ModelComponentChangeHandler</c> of the editor.</remarks>
     public void OnEntityLinked(EntityViewModel entity)
     {
-        // The propagator of the entity is ready: the model component may change the material list
-        GetOrCreateModelComponent(entity).Initialize();
     }
 
     /// <inheritdoc/>
     public void OnEntityUnlinked(EntityViewModel entity)
     {
-        if (modelComponents.Remove(entity.Id, out var modelComponent))
-            modelComponent.Destroy();
-    }
-
-    /// <summary>
-    /// Updates the property grid of the given entity, for its model components.
-    /// </summary>
-    public void UpdateNodePresenter(EntityViewModel entity, INodePresenter node)
-    {
-        GetOrCreateModelComponent(entity).UpdateNodePresenter(node);
     }
 
     /// <summary>
@@ -233,21 +221,8 @@ public sealed class WpfEditorViewOptions : DispatcherViewModel, IEditorViewOptio
             camera.Options = null;
         Overlays.Destroy();
         Transform.Destroy();
-        foreach (var modelComponent in modelComponents.Values)
-            modelComponent.Destroy();
-        modelComponents.Clear();
         cameraComponent.Destroy();
         base.Destroy();
-    }
-
-    private ModelComponentViewModel GetOrCreateModelComponent(EntityViewModel entity)
-    {
-        if (!modelComponents.TryGetValue(entity.Id, out var modelComponent))
-        {
-            modelComponent = new ModelComponentViewModel(editor, entity);
-            modelComponents.Add(entity.Id, modelComponent);
-        }
-        return modelComponent;
     }
 
     private void SelectedAssetsChanged(object? sender, NotifyCollectionChangedEventArgs e)

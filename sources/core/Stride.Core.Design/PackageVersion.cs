@@ -137,6 +137,39 @@ public sealed partial class PackageVersion : IComparable, IComparable<PackageVer
         => SpecialVersion is { } label
            && (label.StartsWith("nightly.", StringComparison.OrdinalIgnoreCase) || label.Contains(".nightly.", StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// Gets whether this version is a prerelease of the releases: its label starts with alpha, beta, preview or rc, numbered
+    /// or not (4.5.0-beta06, 4.5.3-beta, 4.5.0-rc.1, 4.0.0.1-beta02-0926), and it is neither a nightly nor a local build.
+    /// </summary>
+    public bool IsPrerelease => LabelWord() is { } word && Array.IndexOf(PrereleaseWords, word) >= 0;
+
+    /// <summary>
+    /// Gets the tag of a custom build, whose label is neither a prerelease, a nightly nor a local build: the word its label
+    /// starts with, lowercase, without the number after it (mystudio for 4.5.3-mystudio.32, 4.5.3-MyStudio32 and
+    /// 4.5.3-mystudio.beta); null for any other version.
+    /// </summary>
+    public string? CustomTag => LabelWord() is { } word && Array.IndexOf(PrereleaseWords, word) < 0 ? word : null;
+
+    private static readonly string[] PrereleaseWords = ["alpha", "beta", "preview", "rc"];
+
+    // The word a label starts with, lowercase: its letters, hyphens between letters included, up to a number or a dot
+    // (beta for beta02-0926, my-studio for my-studio2.5); a label starting with a number is its own word. Null for a
+    // release, a nightly or a local build.
+    private string? LabelWord()
+    {
+        if (SpecialVersion.Length == 0 || IsNightly || IsLocalBuild)
+            return null;
+        var label = SpecialVersion;
+        var end = 0;
+        while (end < label.Length && (IsLetter(label[end]) || (label[end] == '-' && end > 0 && end + 1 < label.Length && IsLetter(label[end + 1]))))
+            end++;
+        if (end == 0)
+            end = label.IndexOf('.') is var dot and >= 0 ? dot : label.Length;
+        return label.Substring(0, end).ToLowerInvariant();
+
+        static bool IsLetter(char c) => (c | 0x20) is >= 'a' and <= 'z';
+    }
+
     public string[] GetOriginalVersionComponents()
     {
         if (!string.IsNullOrEmpty(originalString))
@@ -259,6 +292,12 @@ public sealed partial class PackageVersion : IComparable, IComparable<PackageVer
         return CompareTo(other);
     }
 
+    /// <summary>
+    /// Compares this version with another, as NuGet orders them: by their numbers, then a release above its prereleases,
+    /// whose labels compare part by part between their dots as SemVer 2 says (rc.9 below rc.10).
+    /// </summary>
+    /// <param name="other">The version to compare with; null is below every version.</param>
+    /// <returns>Less than 0 when this version is below <paramref name="other"/>, 0 when they are equal, more than 0 when it is above.</returns>
     public int CompareTo(PackageVersion? other)
     {
         if (ReferenceEquals(other, null))
@@ -287,7 +326,52 @@ public sealed partial class PackageVersion : IComparable, IComparable<PackageVer
         {
             return -1;
         }
-        return StringComparer.OrdinalIgnoreCase.Compare(SpecialVersion, other.SpecialVersion);
+        return CompareLabels(SpecialVersion, other.SpecialVersion);
+    }
+
+    // Part by part between the dots: a numeric part as a number and below any other, which compares as text without case;
+    // a label below a longer one that starts with the same parts. Labels equal so but written differently (rc.1, rc.01)
+    // then compare as text, so that only equal versions compare as 0.
+    private static int CompareLabels(string label, string other)
+    {
+        var parts = label.Split('.');
+        var otherParts = other.Split('.');
+        for (var i = 0; i < Math.Min(parts.Length, otherParts.Length); i++)
+        {
+            var result = CompareLabelParts(parts[i], otherParts[i]);
+            if (result != 0)
+                return result;
+        }
+
+        return parts.Length != otherParts.Length
+            ? parts.Length.CompareTo(otherParts.Length)
+            : StringComparer.OrdinalIgnoreCase.Compare(label, other);
+    }
+
+    private static int CompareLabelParts(string part, string other)
+    {
+        var numeric = IsNumeric(part);
+        if (numeric != IsNumeric(other))
+            return numeric ? -1 : 1;
+        if (!numeric)
+            return StringComparer.OrdinalIgnoreCase.Compare(part, other);
+
+        // As numbers of any length: without their leading zeros, the longer is the larger
+        var digits = part.TrimStart('0');
+        var otherDigits = other.TrimStart('0');
+        return digits.Length != otherDigits.Length
+            ? digits.Length.CompareTo(otherDigits.Length)
+            : string.CompareOrdinal(digits, otherDigits);
+
+        static bool IsNumeric(string part)
+        {
+            foreach (var c in part)
+            {
+                if (c is < '0' or > '9')
+                    return false;
+            }
+            return part.Length > 0;
+        }
     }
 
     public static bool operator ==(PackageVersion? version1, PackageVersion? version2)
@@ -356,14 +440,15 @@ public sealed partial class PackageVersion : IComparable, IComparable<PackageVer
     public override int GetHashCode()
     {
 #if NETCOREAPP2_1_OR_GREATER
-        return HashCode.Combine(Version, SpecialVersion);
+        // Without case, as Equals
+        return HashCode.Combine(Version, StringComparer.OrdinalIgnoreCase.GetHashCode(SpecialVersion));
 #else
         unchecked
         {
             var hashCode = Version.GetHashCode();
             if (SpecialVersion != null)
             {
-                hashCode = (hashCode * 4567) ^ SpecialVersion.GetHashCode();
+                hashCode = (hashCode * 4567) ^ StringComparer.OrdinalIgnoreCase.GetHashCode(SpecialVersion);
             }
             return hashCode;
         }

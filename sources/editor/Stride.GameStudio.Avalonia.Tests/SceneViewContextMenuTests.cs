@@ -60,7 +60,7 @@ public sealed class SceneViewContextMenuTests
             var menu = scene.View.SceneViewContextMenu;
             Assert.NotNull(menu);
             Assert.True(menu.IsOpen);
-            // The tool's entries first, then the entries of the editor (as in the WPF scene view), then the commands of the
+            // The tool's entries first, then the entries of the editor, then the commands of the
             // plugins in their group
             var items = Describe(menu);
             Assert.Equal(["Paint here", "-", "Create", "Empty entity"], items.Take(4));
@@ -157,7 +157,7 @@ public sealed class SceneViewContextMenuTests
         var toolbar = AttachToolbar(scene, tools);
         try
         {
-            // No plugin command at the place, no tool entry: the menu of the WPF scene view, the creation at the cursor and
+            // No plugin command at the place, no tool entry: the entries of the editor, the creation at the cursor and
             // the actions on the selection
             tools.RaiseContextMenu(new EditorViewContextMenuRequest { Click = Click(), Tool = tools.Tools[0] });
             await WindowTestHelper.PumpAsync();
@@ -169,7 +169,10 @@ public sealed class SceneViewContextMenuTests
             Assert.Equal(["Create", "Empty entity"], items.Take(2));
             Assert.Equal(["Actions", "Open prefab in editor", "Select prefab in asset view", "Break link to prefab", "Create prefab from selection", "-", "Duplicate", "Cut", "Copy", "Delete", "-", "Rename"],
                 items.SkipWhile(x => x != "Actions"));
-            Assert.Same(scene.Editor.CreateEntityCommand, menu.Items.OfType<MenuItem>().Single(x => Equals(x.Header, "Empty entity")).Command);
+            // The entity is created at the cursor, by the editor's command bound by its identifier
+            var createEntity = Assert.IsType<CommandReference>(menu.Items.OfType<MenuItem>().Single(x => Equals(x.Header, "Empty entity")).Command);
+            Assert.Equal(SceneEditorCommands.NewEntityAtCursorId, createEntity.Id);
+            Assert.True(createEntity.CanExecute(null));
             Assert.DoesNotContain(menu.Items.OfType<Control>(), CommandSlot.IsSlotItem);
             menu.Close();
         }

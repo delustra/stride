@@ -366,6 +366,9 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
 
         /// <summary>The methods a <c>base.</c> call reaches.</summary>
         public HashSet<int> BaseCallTargets { get; } = new();
+
+        /// <summary>The types, names and decorations of the context, for the duplicate checks of the whole merge.</summary>
+        public TypeMergeIndex? TypeIndex { get; set; }
     }
 
     class MixinNodeContext
@@ -436,13 +439,15 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
     private void ProcessMixinClasses(MixinGlobalContext globalContext, SpirvContext context, SpirvBuffer buffer, ShaderMixinInstantiation mixinSource, MixinNode mixinNode)
     {
         mixinNode.StartInstruction = buffer.Count;
-        var typeDuplicateInserter = new TypeDuplicateHelper(context);
+        var typeIndex = globalContext.TypeIndex ??= new TypeMergeIndex(context);
+        // What other code appended to the context since the previous node becomes visible to the duplicate checks here
+        typeIndex.Sync();
 
         foreach (var shaderClass in mixinSource.Mixins)
         {
             var contextStart = context.Count;
 
-            var shaderInfo = MergeClassInBuffers(globalContext, context, buffer, mixinNode, shaderClass, typeDuplicateInserter);
+            var shaderInfo = MergeClassInBuffers(globalContext, context, buffer, mixinNode, shaderClass, typeIndex);
 
             mixinNode.ShadersByName.Add(shaderClass.ToClassNameWithGenerics(), shaderInfo);
             mixinNode.Shaders.Add(shaderInfo);
@@ -470,7 +475,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
     // Append CompositionPath to "Link" for any non-stage variable
     // Also force-emit the missing "Link" decorations
 
-    private ShaderInfo MergeClassInBuffers(MixinGlobalContext globalContext, SpirvContext context, SpirvBuffer buffer, MixinNode mixinNode, ShaderClassInstantiation shaderClass, TypeDuplicateHelper typeDuplicateInserter)
+    private ShaderInfo MergeClassInBuffers(MixinGlobalContext globalContext, SpirvContext context, SpirvBuffer buffer, MixinNode mixinNode, ShaderClassInstantiation shaderClass, TypeMergeIndex typeIndex)
     {
         var isRootMixin = mixinNode.Stage == null;
         if (shaderClass.ImportStageOnly)
@@ -678,12 +683,12 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                     else
                     {
                         // Check if type already exists in context (deduplicate them)
-                        if (typeDuplicateInserter.CheckForDuplicates(i2, out var existingInstruction))
+                        if (typeIndex.CheckForDuplicates(i2, out var existingInstruction))
                         {
                             if (i2.IdResult is int duplicateId)
                             {
                                 remapIds.Add(duplicateId, existingInstruction.Data.IdResult!.Value);
-                                var mismatches = typeDuplicateInserter.MergeTypeDecorations(existingInstruction.Data.IdResult.Value, duplicateId);
+                                var mismatches = typeIndex.MergeTypeDecorations(existingInstruction.Data.IdResult.Value, duplicateId);
                                 if (mismatches != null)
                                 {
                                     var details = string.Join("; ", mismatches.Select(m =>
@@ -764,7 +769,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
 
                     if (addToContext)
                     {
-                        typeDuplicateInserter.InsertInstruction(context.Count, i2);
+                        typeIndex.Add(i2);
                     }
                 }
             }
@@ -789,10 +794,6 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                     SetOpNop(i.Data.Memory.Span);
             }
         }
-
-        // Re-sort decoration index after remapping changed target IDs in the buffer
-        if (remapIds.Count > 0)
-            typeDuplicateInserter.ResortDecorations();
 
         // Build ShaderInfo
         var shaderInfo = new ShaderInfo(mixinNode.Shaders.Count, shaderClass.ClassName, shaderStart, buffer.Count);
@@ -1001,6 +1002,17 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
         }
     }
 
+    // The shader that instruction index belongs to; no LINQ, as it runs for every instruction of the node
+    private static ShaderInfo ShaderAt(MixinNode mixinNode, int index)
+    {
+        for (var s = mixinNode.Shaders.Count - 1; s >= 0; s--)
+        {
+            if (index >= mixinNode.Shaders[s].StartInstruction)
+                return mixinNode.Shaders[s];
+        }
+        throw new InvalidOperationException($"No shader of the mixin node holds instruction {index}");
+    }
+
     private static void ProcessMemberAccessAndForeach(MixinGlobalContext globalContext, SpirvContext context, SpirvBuffer temp, MixinNode mixinNode)
     {
         var memberAccesses = new Dictionary<int, int>();
@@ -1012,7 +1024,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
         for (var index = mixinNode.StartInstruction; index < mixinNode.EndInstruction; index++)
         {
             var i = temp[index];
-            currentShader = mixinNode.Shaders.Last(x => index >= x.StartInstruction);
+            currentShader = ShaderAt(mixinNode, index);
 
             // Apply any OpMemberAccessSDSL remapping
             if (memberAccesses.Count > 0)

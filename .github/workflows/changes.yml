@@ -163,6 +163,7 @@ jobs:
               - '.github/workflows/test-linux-game.yml'
               - '.github/workflows/test-linux-simple.yml'
               - '.github/workflows/test-macos-game.yml'
+              - '.github/actions/effect-cache/**'
               - '.github/actions/setup-vulkan-windows/**'
               - '.github/actions/stride-checkout/**'
               - '.github/actions/stride-workload/**'
@@ -194,6 +195,7 @@ jobs:
               - 'tests/**/iOS.Vulkan/**'
               - 'sources/Stride.iOS.slnf'
               - '.github/workflows/test-ios-game.yml'
+              - '.github/actions/effect-cache/**'
               - '.github/actions/stride-checkout/**'
               - '.github/actions/stride-workload/**'
             android:
@@ -206,6 +208,7 @@ jobs:
               - 'tests/**/Android.Vulkan/**'
               - 'sources/Stride.Tests.Game.Android.slnf'
               - '.github/workflows/test-android-game.yml'
+              - '.github/actions/effect-cache/**'
               - '.github/actions/stride-checkout/**'
               - '.github/actions/stride-workload/**'
             full:
@@ -236,7 +239,7 @@ jobs:
               - 'sources/sdk/**'
               - 'sources/shaders/**'
               - 'sources/shared/**'
-              - 'sources/tests/xunit.runner.stride/**'
+              - 'sources/tests/Stride.XunitRunner/**'
               - 'sources/tools/Stride.Importer.*/**'
               - 'sources/tools/Stride.TextureConverter/**'
               - 'sources/Directory.*'

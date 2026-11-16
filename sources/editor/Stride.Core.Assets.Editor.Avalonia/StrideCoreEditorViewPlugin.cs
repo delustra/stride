@@ -28,11 +28,14 @@ public sealed class StrideCoreEditorViewPlugin : AssetsEditorPlugin
             }
         }
 
-        // Same processors as the WPF CoreAssetsEditorPlugin
+        // The paste processors of the core assets
         context.PasteProcessors.Register(new AssetPropertyPasteProcessor());
         context.PasteProcessors.Register(new AssetItemPasteProcessor((SessionViewModel)context.Session));
 
-        // The nested properties toggle, in the context menu of a property (the WPF editor has no UI for it)
+        // The nested properties toggle, in the context menu of a property, and the commands of the property that the menu binds
+        // by their identifier
         context.Commands.Register(PropertyGridCommands.CreateToggleNestedProperties());
+        foreach (var command in PropertyGridCommands.CreateNodeCommands())
+            context.Commands.Register(command);
     }
 }

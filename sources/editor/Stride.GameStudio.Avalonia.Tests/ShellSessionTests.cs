@@ -12,6 +12,7 @@ using Stride.Assets.Presentation.ViewModels;
 using Stride.Assets.Sprite;
 using Stride.Core.Assets;
 using Stride.Core.Assets.Editor.Services;
+using Stride.Core.Assets.Editor.Settings;
 using Stride.Core.Assets.Editor.ViewModels;
 using Stride.Core.Presentation.Avalonia.Controls;
 using Stride.GameStudio.Avalonia.Tests.Helpers;
@@ -28,7 +29,7 @@ public sealed class ShellSessionTests
     [AvaloniaFact]
     public async Task TheMainViewModelOpensASessionAndInitializesThePlugins()
     {
-        using var fixture = await ShellSessionFixture.OpenAsync(("Sheet", new SpriteSheetAsset()), ("Material", new MaterialAsset()));
+        using var fixture = await ShellSessionFixture.OpenWithMSBuildAsync(("Sheet", new SpriteSheetAsset()), ("Material", new MaterialAsset()));
 
         var session = fixture.Session;
         Assert.True(session.IsEditorInitialized);
@@ -47,8 +48,8 @@ public sealed class ShellSessionTests
     [AvaloniaFact]
     public async Task TheSessionAsksForTheAvaloniaToolkit()
     {
-        // The host decides which companions the session loads: the neutral ones and the Avalonia ones, never the Wpf ones
-        // (the filter itself is tested in Stride.Core.Assets.Tests.TestCompanionToolkits)
+        // The host decides which companions the session loads: the neutral ones and the Avalonia ones, never those of
+        // another toolkit (the filter itself is tested in Stride.Core.Assets.Tests.TestCompanionToolkits)
         using var fixture = await ShellSessionFixture.OpenAsync(("Sheet", new SpriteSheetAsset()));
         Assert.Equal(EditorToolkits.Avalonia, fixture.Main.EditorToolkitName);
         Assert.Same(fixture.Main, fixture.Session.Main);
@@ -69,7 +70,7 @@ public sealed class ShellSessionTests
         Assert.Contains(fixture.Main.MRU.MostRecentlyUsedFiles, x => x.FilePath == fixture.PackagePath);
 
         // A fresh editor reads it back from the settings, as the startup path when the settings ask to reload the last session
-        var mru = Settings.GameStudioInternalSettings.CreateMostRecentlyUsedFiles();
+        var mru = RecentSessionsSettings.CreateMostRecentlyUsedFiles();
         Assert.Equal(fixture.PackagePath, mru.MostRecentlyUsedFiles.First().FilePath);
 
         fixture.Main.ClearRecentFilesCommand.Execute();

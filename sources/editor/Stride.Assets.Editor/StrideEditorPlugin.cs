@@ -2,7 +2,7 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 using System.Reflection;
-using Stride.Assets.Editor.Build;
+using Stride.Assets.Editor.Commands;
 using Stride.Assets.Editor.EditorGame;
 using Stride.Assets.Editor.Quantum.NodePresenters.Commands;
 using Stride.Assets.Editor.Quantum.NodePresenters.Updaters;
@@ -12,6 +12,7 @@ using Stride.Assets.Presentation.AssetEditors.EntityHierarchyEditor.ViewModels;
 using Stride.Core;
 using Stride.Core.Assets;
 using Stride.Core.Assets.Editor.Annotations;
+using Stride.Core.Assets.Editor.Commands;
 using Stride.Core.Assets.Editor.Components.Properties;
 using Stride.Core.Assets.Editor.Services;
 using Stride.Core.Assets.Editor.Settings;
@@ -86,6 +87,14 @@ public sealed class StrideEditorPlugin : StrideAssetsPlugin
         foreach (var settingsKey in EditorSettingsAttribute.GetKeys(typeof(SceneEditorSettings)).Concat(EditorSettingsAttribute.GetKeys(typeof(ScriptEditorSettings))))
             context.SettingsKeys.Register(settingsKey);
 
+        // The editor's commands that act on the session (the asset view's shortcuts, the package commands), in the registry of
+        // the commands; the shells show them in their menus themselves
+        foreach (var command in SessionCommands.Create())
+            context.Commands.Register(command);
+        // The commands of the scene and prefab editors and of the sprite sheet editor: their context menus and their shortcuts
+        foreach (var command in SceneEditorCommands.Create().Concat(SpriteSheetEditorCommands.Create()))
+            context.Commands.Register(command);
+
         context.CopyProcessors.Register(new EntityComponentCopyProcessor());
         context.PasteProcessors.Register(new EntityComponentPasteProcessor());
         context.PasteProcessors.Register(new EntityHierarchyPasteProcessor());
@@ -129,9 +138,25 @@ public sealed class StrideEditorPlugin : StrideAssetsPlugin
         // The scene and prefab editors show the toolbar of the Avalonia view as their view options
         context.Services.Register(new EditorViewToolbarFactory());
 
-        var builderService = new GameStudioBuilderService(sessionViewModel, settingsProvider, new StrideShaderImporter(), buildDirectory);
+        var builderService = new GameStudioBuilderService(sessionViewModel, settingsProvider, buildDirectory);
         context.Services.Register(builderService);
         context.Services.Register(builderService.Database); // TODO: this should be removed, the AssetBuilderService is reachable from anywhere now
+
+        // A save writes the shaders added, moved or deleted in the editor (shader files changed outside follow their project,
+        // which this editor does not watch): the effects then read the files where they are now
+        sessionViewModel.SessionSaved += (_, _) =>
+        {
+            if (builderService.IsDisposed)
+                return;
+            try
+            {
+                builderService.UpdateShaderSources();
+            }
+            catch (Exception e)
+            {
+                builderService.Logger.Error("Failed to update the shader files of the effects", e);
+            }
+        };
 
         if (EnableThumbnailService)
         {
@@ -145,6 +170,9 @@ public sealed class StrideEditorPlugin : StrideAssetsPlugin
         context.NodePresenterCommands.Register(new SetComponentReferenceCommand());
         context.NodePresenterCommands.Register(new SetSymbolReferenceCommand());
         context.NodePresenterCommands.Register(new SkeletonNodePreserveAllCommand());
+        // Show the entity picker of the editor, if it has one (IEntityPickerService)
+        context.NodePresenterCommands.Register(new PickupEntityCommand());
+        context.NodePresenterCommands.Register(new PickupEntityComponentCommand());
         // Opens the curve editor of the editor, if it has one (ICurveEditorService)
         context.NodePresenterCommands.Register(new EditCurveCommand(sessionViewModel));
 

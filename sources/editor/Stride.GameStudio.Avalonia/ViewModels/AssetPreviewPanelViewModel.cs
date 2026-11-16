@@ -2,12 +2,12 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 using Stride.Core.Assets.Editor.Panels;
+using Stride.Core.Assets.Editor.ViewModels;
 
 namespace Stride.GameStudio.Avalonia.ViewModels;
 
 /// <summary>
-/// The Asset preview panel: the preview game renders only while the panel is shown (visible and selected in its group), as
-/// WPF's preview pane.
+/// The Asset preview panel: the preview game renders only while the panel is shown (visible and selected in its group).
 /// </summary>
 internal sealed class AssetPreviewPanelViewModel : PanelViewModel
 {

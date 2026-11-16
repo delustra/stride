@@ -13,7 +13,7 @@ namespace Stride.Assets.Editor.Avalonia.EditorGame;
 
 /// <summary>
 /// Shows the cursors the editor games ask for over the Avalonia view of their game, and gives them the drag distance of
-/// the platform, as the WPF <c>WpfEditorGameHostService</c> does over the WPF view.
+/// the platform.
 /// </summary>
 /// <remarks>
 /// The games ask from their own thread: the cursor changes on the UI thread, and only the last one asked shows.
@@ -27,6 +27,7 @@ public sealed class AvaloniaEditorGameCursorService : EditorGameServiceBase, IEd
     internal static readonly Vector2 DefaultDragDistance = new(4, 4);
 
     private readonly OffscreenGameView? view;
+    private readonly OffscreenGameViewport? viewport;
     private readonly Lock dragDistanceLock = new();
     private Vector2 minimumDragDistance = DefaultDragDistance;
     private int requestedCursor;
@@ -43,6 +44,7 @@ public sealed class AvaloniaEditorGameCursorService : EditorGameServiceBase, IEd
 
     internal AvaloniaEditorGameCursorService(OffscreenGameViewport? viewport)
     {
+        this.viewport = viewport;
         view = viewport?.View;
         if (view is not null)
             Dispatcher.UIThread.Post(WatchPlatformSettings);
@@ -93,7 +95,10 @@ public sealed class AvaloniaEditorGameCursorService : EditorGameServiceBase, IEd
     {
         Volatile.Write(ref pendingUpdate, 0);
         var type = ToStandardCursor((EditorGameCursor)Volatile.Read(ref requestedCursor));
-        view!.Cursor = type is { } standard ? new Cursor(standard) : null;
+        var cursor = type is { } standard ? new Cursor(standard) : null;
+        // Every view of the game: the game works in the one the pointer is over
+        foreach (var gameView in viewport?.Views ?? [view!])
+            gameView.Cursor = cursor;
     }
 
     private void WatchPlatformSettings()

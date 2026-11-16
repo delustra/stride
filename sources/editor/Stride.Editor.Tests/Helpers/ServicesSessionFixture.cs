@@ -75,19 +75,10 @@ public sealed class ServicesSessionFixture : IAsyncDisposable
     /// <param name="withBuilder">Whether to create the builder service (and its database); the thumbnail tests need it, a session-only test does not.</param>
     public static DispatcherTask<ServicesSessionFixture> OpenAsync(bool withBuilder, params (string Location, Asset Asset)[] assets)
     {
-        // The shader importer is a Stride assets one (Stride.Assets.Editor): this layer builds without it
-        return DispatcherTask.InDispatcher(() => OpenAsync(withBuilder, null, assets));
+        return DispatcherTask.InDispatcher(() => OpenSessionAsync(withBuilder, assets));
     }
 
-    /// <summary>
-    /// Saves a package with the given assets and opens it with the build services, the builder importing shaders with the given importer.
-    /// </summary>
-    public static DispatcherTask<ServicesSessionFixture> OpenWithShaderImporterAsync(IShaderImporter shaderImporter, params (string Location, Asset Asset)[] assets)
-    {
-        return DispatcherTask.InDispatcher(() => OpenAsync(true, shaderImporter, assets));
-    }
-
-    private static async Task<ServicesSessionFixture> OpenAsync(bool withBuilder, IShaderImporter? shaderImporter, (string Location, Asset Asset)[] assets)
+    private static async Task<ServicesSessionFixture> OpenSessionAsync(bool withBuilder, (string Location, Asset Asset)[] assets)
     {
         var directory = Path.Combine(Path.GetTempPath(), "Stride.Editor.Tests", Guid.NewGuid().ToString("N"));
         var dialogs = new FakeEditorDialogService();
@@ -103,21 +94,23 @@ public sealed class ServicesSessionFixture : IAsyncDisposable
         ]);
         var fixture = new ServicesSessionFixture(directory, serviceProvider, dialogs);
         fixture.WritePackage(assets);
-        var session = await SessionViewModel.OpenSessionAsync(fixture.PackagePath, fixture.Result, new FakeMainViewModel(serviceProvider), serviceProvider);
+        // The NuGet restore and the MSBuild evaluation of the project have nothing to give for it
+        var session = await SessionViewModel.OpenSessionAsync(fixture.PackagePath, loadParameters => TestPackageLoad.WithoutMSBuild(fixture.PackagePath, null, fixture.Result, loadParameters),
+            fixture.Result, new FakeMainViewModel(serviceProvider), serviceProvider);
         if (session is null)
             throw new InvalidOperationException("The session could not be opened:" + Environment.NewLine + fixture.Log);
         fixture.Session = session;
 
         // The services the GameStudio plugin registers when a session opens
         fixture.SettingsProvider = new GameSettingsProviderService(session);
-        serviceProvider.RegisterService(fixture.SettingsProvider);
+        session.ServiceProvider.RegisterService(fixture.SettingsProvider);
         if (withBuilder)
         {
             var buildDirectory = Path.Combine(directory, "build");
             System.IO.Directory.CreateDirectory(buildDirectory);
-            fixture.Builder = new GameStudioBuilderService(session, fixture.SettingsProvider, shaderImporter, buildDirectory);
-            serviceProvider.RegisterService(fixture.Builder);
-            serviceProvider.RegisterService(fixture.Builder.Database);
+            fixture.Builder = new GameStudioBuilderService(session, fixture.SettingsProvider, buildDirectory);
+            session.ServiceProvider.RegisterService(fixture.Builder);
+            session.ServiceProvider.RegisterService(fixture.Builder.Database);
         }
 
         // What the session does in the background once open, so that the tests start from a session at rest

@@ -9,6 +9,7 @@ using Avalonia.Input.Platform;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using Stride.Core.Assets.Editor.Commands;
 using Stride.Core.Assets;
 using Stride.Core.Presentation.Avalonia.Controls;
 using Stride.Core.Presentation.Quantum.ViewModels;
@@ -21,7 +22,7 @@ namespace Stride.GameStudio.Avalonia.Tests;
 
 /// <summary>
 /// Cut, copy, paste, delete and rename from the Edit menu, the keyboard and the context menus: they act on the panel that has
-/// the focus, as the routed commands of the WPF editor do.
+/// the focus.
 /// </summary>
 public sealed class EditCommandTests
 {
@@ -31,7 +32,7 @@ public sealed class EditCommandTests
     private const string OtherAssetLocation = OtherFolder + "/Wood";
 
     [AvaloniaFact]
-    public async Task TheEditMenuHasTheItemsAndShortcutsOfWpf()
+    public async Task TheEditMenuHasItsItemsAndShortcuts()
     {
         using var fixture = ShellSessionFixture.Create();
         var window = new MainWindow { DataContext = fixture.Main };
@@ -39,7 +40,7 @@ public sealed class EditCommandTests
         try
         {
             var edit = window.GetLogicalDescendants().OfType<MenuItem>().Single(x => Equals(x.Header, "Edit"));
-            Assert.Equal(["Undo", "Redo", "-", "Cut", "Copy", "Paste", "Delete", "Rename", "-", "_Settings..."], Describe(edit.Items));
+            Assert.Equal(["Undo", "Redo", "-", "Cut", "Copy", "Paste", "Delete", "Rename", "-", "_Settings...", "Keyboard shortcuts..."], Describe(edit.Items));
             Assert.Equal(new KeyGesture(Key.X, KeyModifiers.Control), MenuItem(window, "CutMenuItem").InputGesture);
             Assert.Equal(new KeyGesture(Key.C, KeyModifiers.Control), MenuItem(window, "CopyMenuItem").InputGesture);
             Assert.Equal(new KeyGesture(Key.V, KeyModifiers.Control), MenuItem(window, "PasteMenuItem").InputGesture);
@@ -212,7 +213,7 @@ public sealed class EditCommandTests
     }
 
     [AvaloniaFact]
-    public async Task TheAssetContextMenuHasTheItemsOfWpf()
+    public async Task TheAssetContextMenuHasItsItems()
     {
         var (fixture, window) = await OpenAsync((AssetLocation, new TextPropertiesAsset { Label = "label" }));
         using (fixture)
@@ -222,7 +223,7 @@ public sealed class EditCommandTests
                 var asset = fixture.Asset(AssetLocation);
                 var list = AssetList(window);
                 var menu = list.ContextMenu!;
-                // One asset selected: the items of WPF, with the commands of the asset (an archetype can be derived from any
+                // One asset selected: the asset items, with the commands of the asset (an archetype can be derived from any
                 // asset) inlined after the asset items. The test asset has no editor and no archetype.
                 fixture.Session.AssetCollection.SelectAssets([asset]);
                 await WindowTestHelper.PumpAsync();
@@ -245,7 +246,7 @@ public sealed class EditCommandTests
                     // The test asset has no source file
                     "Open with text editor", "Open asset file", "Open source file", "Show in Explorer",
                 ], Enabled(items));
-                // The default target of the root-asset submenu is bold, as in WPF
+                // The default target of the root-asset submenu is bold
                 var targets = (MenuItem)items.Single(x => x is MenuItem { Header: "Include in build as root asset in" });
                 targets.Open();
                 await WindowTestHelper.PumpAsync();
@@ -291,11 +292,11 @@ public sealed class EditCommandTests
     }
 
     /// <summary>
-    /// As in WPF, Ctrl+R updates every asset whose source changed and Ctrl+Shift+R the selected assets, from the window and in
+    /// Ctrl+R updates every asset whose source changed and Ctrl+Shift+R the selected assets, from the window and in
     /// the gesture texts of the asset context menu.
     /// </summary>
     [AvaloniaFact]
-    public async Task TheUpdateFromSourceShortcutsAreTheOnesOfWpf()
+    public async Task TheUpdateFromSourceShortcutsAreCtrlRAndCtrlShiftR()
     {
         var (fixture, window) = await OpenAsync((AssetLocation, new TextPropertiesAsset { Label = "label" }));
         using (fixture)
@@ -306,12 +307,17 @@ public sealed class EditCommandTests
                 var updateAll = new KeyGesture(Key.R, KeyModifiers.Control);
                 var updateSelected = new KeyGesture(Key.R, KeyModifiers.Control | KeyModifiers.Shift);
 
-                Assert.Same(sourceTracker.UpdateAllAssetsWithModifiedSourceCommand, window.KeyBindings.Single(x => x.Gesture == updateAll).Command);
-                Assert.Same(sourceTracker.UpdateSelectedAssetsFromSourceCommand, window.KeyBindings.Single(x => x.Gesture == updateSelected).Command);
+                var shortcuts = window.View.CommandSlots!.Shortcuts;
+                Assert.Equal(SessionCommands.UpdateAllFromSourceId, shortcuts.Single(x => x.Gesture == updateAll).Descriptor.Id);
+                Assert.Equal(SessionCommands.UpdateSelectedFromSourceId, shortcuts.Single(x => x.Gesture == updateSelected).Descriptor.Id);
 
-                var items = AssetList(window).ContextMenu!.Items.OfType<MenuItem>().ToList();
+                // The menu items show the shortcuts bound to their commands once the menu has opened
+                var list = AssetList(window);
+                var items = (await OpenAsync(list.ContextMenu!, list)).OfType<MenuItem>().ToList();
                 Assert.Equal(updateSelected, items.Single(x => x.Header is "Update selected assets from their source").InputGesture);
                 Assert.Equal(updateAll, items.Single(x => x.Header is "Update all assets with modified source").InputGesture);
+                list.ContextMenu!.Close();
+                await WindowTestHelper.PumpAsync();
             }
             finally
             {
@@ -321,7 +327,7 @@ public sealed class EditCommandTests
     }
 
     [AvaloniaFact]
-    public async Task TheSolutionContextMenuHasTheItemsOfWpf()
+    public async Task TheSolutionContextMenuHasItsItems()
     {
         var (fixture, window) = await OpenAsync((AssetLocation, new TextPropertiesAsset { Label = "label" }));
         using (fixture)
@@ -333,23 +339,23 @@ public sealed class EditCommandTests
                 var tree = SolutionTree(window);
                 var menu = tree.ContextMenu!;
 
-                // A folder: the folder, package (its properties apply to a folder, as in WPF) and solution groups, then the actions
+                // A folder: the folder, package (its properties apply to a folder) and solution groups, then the actions
                 locations.Clear();
                 locations.Add(folder);
                 await WindowTestHelper.PumpAsync();
                 var items = await OpenAsync(menu, tree);
-                Assert.Equal(["Folder", "Create folder", "Package", "Package properties", "Solution", "Add existing project...", "Actions", "Cut", "Copy", "Paste", "Delete", "Rename", "Asset", "Add asset...", "Explore", "Show in Explorer"], Describe(items));
-                Assert.Equal(["Create folder", "Package properties", "Add existing project...", "Cut", "Copy", "Paste", "Delete", "Rename", "Add asset...", "Show in Explorer"], Enabled(items));
+                Assert.Equal(["Folder", "Create folder", "Package", "Package properties", "Solution", "Add existing project...", "Open in IDE", "Actions", "Cut", "Copy", "Paste", "Delete", "Rename", "Asset", "Add asset...", "Explore", "Show in Explorer"], Describe(items));
+                Assert.Equal(["Create folder", "Package properties", "Add existing project...", "Open in IDE", "Cut", "Copy", "Paste", "Delete", "Rename", "Add asset...", "Show in Explorer"], Enabled(items));
                 menu.Close();
                 await WindowTestHelper.PumpAsync();
 
-                // The project: it can be made the current project
+                // The project: it can be made the current project, updated with a package template, and given a dependency
                 locations.Clear();
                 locations.Add(fixture.Package);
                 await WindowTestHelper.PumpAsync();
                 items = await OpenAsync(menu, tree);
-                Assert.Equal(["Folder", "Create folder", "Package", "Set as current project", "Package properties", "Solution", "Add existing project...", "Actions", "Cut", "Copy", "Paste", "Delete", "Rename", "Asset", "Add asset...", "Explore", "Show in Explorer"], Describe(items));
-                Assert.Equal(["Create folder", "Set as current project", "Package properties", "Add existing project...", "Cut", "Copy", "Paste", "Delete", "Rename", "Add asset...", "Show in Explorer"], Enabled(items));
+                Assert.Equal(["Folder", "Create folder", "Package", "Update package", "Add dependency...", "Set as current project", "Package properties", "Solution", "Add existing project...", "Open in IDE", "Actions", "Cut", "Copy", "Paste", "Delete", "Rename", "Asset", "Add asset...", "Explore", "Show in Explorer"], Describe(items));
+                Assert.Equal(["Create folder", "Update package", "Add dependency...", "Set as current project", "Package properties", "Add existing project...", "Open in IDE", "Cut", "Copy", "Paste", "Delete", "Rename", "Add asset...", "Show in Explorer"], Enabled(items));
                 menu.Close();
                 await WindowTestHelper.PumpAsync();
             }
@@ -361,7 +367,7 @@ public sealed class EditCommandTests
     }
 
     /// <summary>
-    /// A property of the grid has the copy, paste and replace of the WPF property grid: in its context menu, and from the Edit
+    /// A property of the grid has copy, paste and replace: in its context menu, and from the Edit
     /// menu while it has the focus.
     /// </summary>
     [AvaloniaFact]

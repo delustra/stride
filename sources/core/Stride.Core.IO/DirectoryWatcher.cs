@@ -9,12 +9,23 @@ public partial class DirectoryWatcher : IDisposable
 {
     private const int SleepBetweenWatcherCheck = 200;
     private Thread? watcherCheckThread;
-    private bool exitThread;
+    // Set by Dispose: the check thread waits on it between its checks, so that it ends at once
+    private readonly ManualResetEventSlim exitThread = new();
 
     /// <summary>
     /// Occurs when a file/directory change occurred.
     /// </summary>
     public event EventHandler<FileEvent>? Modified;
+
+    /// <summary>
+    /// Occurs when the watch of a directory failed and started again, for example after the buffer of its events overflowed: the
+    /// changes in that directory in the meantime may never be reported by <see cref="Modified"/>.
+    /// </summary>
+    /// <remarks>
+    /// It is raised once the new watch runs, so a listener that reads the files of the directory again then misses nothing; it can
+    /// find what changed with a <see cref="FileWriteTimes"/>.
+    /// </remarks>
+    public event EventHandler<ChangesMissedEventArgs>? ChangesMissed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DirectoryWatcher"/> class.
@@ -45,7 +56,7 @@ public partial class DirectoryWatcher : IDisposable
     {
         if (disposing)
         {
-            exitThread = true;
+            exitThread.Set();
             if (watcherCheckThread != null)
             {
                 watcherCheckThread.Join();
@@ -95,6 +106,16 @@ public partial class DirectoryWatcher : IDisposable
     protected virtual void OnModified(object sender, FileEvent e)
     {
         Modified?.Invoke(sender, e);
+    }
+
+    /// <summary>
+    /// Called when the watch of a directory started again after an error.
+    /// </summary>
+    /// <param name="sender">The sender.</param>
+    /// <param name="e">The directory whose changes may have been missed.</param>
+    protected virtual void OnChangesMissed(object sender, ChangesMissedEventArgs e)
+    {
+        ChangesMissed?.Invoke(sender, e);
     }
 
 #if !STRIDE_PLATFORM_DESKTOP

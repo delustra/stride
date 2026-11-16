@@ -1,11 +1,14 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
+using Stride.Assets.Effect;
 using Stride.Core.Assets;
 using Stride.Core.Assets.Editor.Tests.Helpers;
 using Stride.Core.BuildEngine;
+using Stride.Core.IO;
 using Stride.Editor.Build;
 using Stride.Editor.Tests.Helpers;
+using Stride.Shaders.Compiler;
 
 namespace Stride.Editor.Tests;
 
@@ -24,36 +27,20 @@ public sealed class BuilderServiceTests
         Assert.NotNull(builder.EffectCompiler);
         Assert.False(builder.IsDisposed);
         Assert.Equal(0, builder.PendingShaderCompilationCount);
-        Assert.Same(builder, fixture.ServiceProvider.Get<GameStudioBuilderService>());
-        Assert.Same(builder.Database, fixture.ServiceProvider.Get<GameStudioDatabase>());
+        Assert.Same(builder, fixture.Session.ServiceProvider.Get<GameStudioBuilderService>());
+        Assert.Same(builder.Database, fixture.Session.ServiceProvider.Get<GameStudioDatabase>());
     }
 
     [Fact]
-    public async Task WaitForShadersReturnsWithoutAShaderImporter()
+    public async Task TheEffectCompilerReadsTheShaderFilesOfTheSession()
     {
         await using var fixture = await ServicesSessionFixture.OpenAsync(withBuilder: true, ("Textures/Wood", new TestEditorAsset { Value = "wood" }));
-
-        // Nothing to import: the WPF studio would wait for the shaders of the Stride package
-        Assert.Null(fixture.Builder.ShaderImportProgress);
-        Assert.True(fixture.Builder.AreShadersLoaded);
-        // The blocking wait returns too (a timeout means it blocked)
-        await Task.Run(fixture.Builder.WaitForShaders).WaitAsync(Timeout);
-    }
-
-    [Fact]
-    public async Task TheBuilderBuildsTheStepsOfItsShaderImporter()
-    {
-        var importer = new FakeShaderImporter();
-        await using var fixture = await ServicesSessionFixture.OpenWithShaderImporterAsync(importer, ("Textures/Wood", new TestEditorAsset { Value = "wood" }));
         var builder = fixture.Builder;
 
-        // The builder asks the importer once, for the session, and builds the steps it returns
-        Assert.Same(fixture.Session, Assert.Single(importer.Sessions));
-        Assert.NotNull(builder.ShaderImportProgress);
-        await builder.WaitForShadersAsync().WaitAsync(Timeout);
-        Assert.True(importer.Step.Executed);
-        Assert.True(builder.AreShadersLoaded);
-        await Task.Run(builder.WaitForShaders).WaitAsync(Timeout);
+        // Nothing is imported: the effects read the shader files where they are, through a provider in front of the shared database
+        var provider = Assert.IsType<ShaderSourceFileProvider>(((EffectCompilerBase)builder.EffectCompiler).FileProvider);
+        Assert.IsType<DatabaseFileProvider>(provider.Database);
+        Assert.Empty(builder.ShaderSources.FileNames);
     }
 
     [Fact]
@@ -110,6 +97,56 @@ public sealed class BuilderServiceTests
         gate.Set();
         Assert.Equal(ResultStatus.Successful, await kept.Wait().WaitAsync(Timeout));
         Assert.Equal(["gate", "kept"], order);
+    }
+
+    [Fact]
+    public async Task AChangeOfAShaderFileABuildReadNamesItsBuildUnits()
+    {
+        var fixture = await ServicesSessionFixture.OpenAsync(withBuilder: true, ("Textures/Wood", new TestEditorAsset { Value = "wood" }));
+        var builder = fixture.Builder;
+        builder.ShaderChangeDelay = TimeSpan.FromMilliseconds(50);
+        var directory = Directory.CreateTempSubdirectory("stride-shader-sources-");
+        try
+        {
+            var shaderFile = Path.Combine(directory.FullName, "Foo.sdsl");
+            var unreadFile = Path.Combine(directory.FullName, "Bar.sdsl");
+            File.WriteAllText(shaderFile, "shader Foo {};");
+            File.WriteAllText(unreadFile, "shader Bar {};");
+
+            // The second unit takes its result from the cache, as every build does after a reopen: it read the file all the same
+            var built = new FileReadingBuildUnit(shaderFile);
+            builder.PushBuildUnit(built);
+            Assert.Equal(ResultStatus.Successful, await built.Wait().WaitAsync(Timeout));
+            var cached = new FileReadingBuildUnit(shaderFile);
+            builder.PushBuildUnit(cached);
+            await cached.Wait().WaitAsync(Timeout);
+            Assert.Equal(ResultStatus.NotTriggeredWasSuccessful, cached.CommandStatus);
+
+            var changed = new TaskCompletionSource<ShaderSourcesChangedEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
+            builder.ShaderSourcesChanged += (_, e) => changed.TrySetResult(e);
+
+            // The watcher can take a moment to start: write until it sees a change. The file no build read changes too
+            var deadline = DateTime.UtcNow + Timeout;
+            for (var i = 0; !changed.Task.IsCompleted; i++)
+            {
+                Assert.True(DateTime.UtcNow < deadline, "The change of the shader file was never reported.");
+                File.AppendAllText(unreadFile, $"// {i}\n");
+                File.AppendAllText(shaderFile, $"// {i}\n");
+                await Task.WhenAny(changed.Task, Task.Delay(500));
+            }
+
+            var args = await changed.Task;
+            Assert.Equal([Path.GetFullPath(shaderFile)], args.Files, StringComparer.OrdinalIgnoreCase);
+            var dependents = args.GetDependentAssets(built.Identifier.ContextIdentifier).ToList();
+            Assert.Equal(2, dependents.Count);
+            Assert.Contains(built.Identifier.AssetIdentifier, dependents);
+            Assert.Contains(cached.Identifier.AssetIdentifier, dependents);
+        }
+        finally
+        {
+            await fixture.DisposeAsync();
+            directory.Delete(true);
+        }
     }
 
     [Fact]

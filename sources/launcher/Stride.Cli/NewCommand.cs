@@ -28,7 +28,7 @@ internal static class NewCommand
             Arity = ArgumentArity.ZeroOrMore,
             AllowMultipleArgumentsPerToken = true,
         };
-        var versionOption = new Option<string?>("--version") { Description = "Use a specific Stride version instead of the newest installed one (for an asset pack, instead of the version of the project it goes into)." };
+        var versionOption = new Option<string?>("--version") { Description = "Use a specific Stride version instead of the newest installed release (for an asset pack, instead of the version of the project it goes into)." };
         var forceOption = new Option<bool>("--force") { Description = "Create the project even if the output directory already exists and is not empty (overwrites)." };
 
         var command = new Command("new", "Create a project from an installed Stride version's templates.");
@@ -143,7 +143,7 @@ internal static class NewCommand
                 var resolvedName = template.ShortNameList.FirstOrDefault() ?? templateName;
                 Console.WriteLine($"Creating '{name}' from {resolvedName} (Stride {version})...");
                 if (isItemTemplate)
-                    return await AddAssetPack(context.Registry, template, name, parameters, packPackage, packFolders ?? AssetPackPlacement.GetFolders(output), version, cancellationToken);
+                    return await AddAssetPack(context.Registry, template, name, parameters, packPackage, packFolders ?? AssetPackPlacement.GetFolders(output), cancellationToken);
 
                 var result = await context.Registry.InstantiateAsync(template, name, output, parameters, cancellationToken);
                 if (result.Status != CreationResultStatus.Success)
@@ -188,12 +188,10 @@ internal static class NewCommand
     // Adds a pack to the folders it goes to. Prints the reason and returns 1 when it is refused.
     private static async Task<int> AddAssetPack(
         DotNetNewTemplateRegistry registry, ITemplateInfo template, string name, IReadOnlyDictionary<string, string> parameters,
-        AssetPackPlacement.PackageChoice? package, AssetPackPlacement.PackFolders folders, PackageVersion engine, CancellationToken cancellationToken)
+        AssetPackPlacement.PackageChoice? package, AssetPackPlacement.PackFolders folders, CancellationToken cancellationToken)
     {
         try
         {
-            AssetPackPlacement.CheckVersionForRewrite(engine, folders);
-
             var (hasAssets, hasResources) = await AssetPackPlacement.AddAsync(async staging =>
             {
                 var result = await registry.InstantiateAsync(template, name, staging, parameters, cancellationToken);
@@ -218,7 +216,7 @@ internal static class NewCommand
     }
 
     // The version + open registry + templates shared by `new <template>` and `new list`. Resolves the version
-    // (explicit --version, else the newest installed), opens the template registry behind a transient status,
+    // (explicit --version, else the newest installed release), opens the template registry behind a transient status,
     // and returns its templates. Prints the reason and returns null on failure; the caller disposes the registry.
     private static async Task<TemplateContext?> LoadTemplates(
         StrideVersionManager manager, string? versionSpec, string[]? packages, CancellationToken cancellationToken)

@@ -24,7 +24,7 @@ using Stride.GameStudio.Avalonia.Views;
 namespace Stride.GameStudio.Avalonia.Tests;
 
 /// <summary>
-/// The panels and editors of the main window, docked as WPF's: the View menu shows and hides the panels in their place, a
+/// The panels and editors of the main window, docked: the View menu shows and hides the panels in their place, a
 /// closed panel hides, the editors are documents with a close button that asks once to save, the layouts with and without
 /// editors switch and are kept per session, a reset puts the defaults back, and a floating window keeps its views and the
 /// shortcuts of the main window.
@@ -34,7 +34,7 @@ public sealed class DockingTests
     private const string Script = "public sealed class Player : SyncScript\n{\n    public override void Update() { }\n}\n";
 
     [AvaloniaFact]
-    public async Task TheViewMenuListsThePanelsInTheSectionsOfWpfThenResetLayout()
+    public async Task TheViewMenuListsThePanelsInSectionsThenResetLayout()
     {
         using var fixture = await ShellSessionFixture.OpenAsync(("Sheet", new SpriteSheetAsset()));
         var window = new MainWindow { DataContext = fixture.Main };
@@ -54,7 +54,8 @@ public sealed class DockingTests
                 "Plugins", "-",
                 // The panel of the test plugin (PanelPluginTests)
                 "New Notebook", "-",
-                "Reset layout",
+                "Reset layout", "-",
+                "Command palette...",
             ], headers);
             // Every panel visible by default is visible in the default layout, and its entry is checked; the Plugins panel and the
             // curve editor are hidden by default
@@ -114,7 +115,7 @@ public sealed class DockingTests
             panels.Factory.CloseDockable(references);
             await WindowTestHelper.WaitUntilAsync(() => !panels.IsVisible(BuiltInPanels.References), "the panel hidden");
 
-            // Hidden, as in WPF: the same panel comes back from the View menu
+            // Hidden: the same panel comes back from the View menu
             Assert.False(entry.IsChecked);
             Assert.Same(references, panels.FindDockable(BuiltInPanels.References));
             entry.IsChecked = true;

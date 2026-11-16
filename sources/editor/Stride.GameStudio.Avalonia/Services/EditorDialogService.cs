@@ -3,6 +3,7 @@
 
 using Avalonia.Controls;
 using Stride.Core.Assets.Editor.Avalonia.Views;
+using Stride.Core.Assets.Editor.Commands;
 using Stride.Core.Assets.Editor.Components.AddAssets;
 using Stride.Core.Assets.Editor.Components.FixAssetReferences;
 using Stride.Core.Assets.Editor.Components.TemplateDescriptions;
@@ -13,6 +14,7 @@ using Stride.Core.Extensions;
 using Stride.Core.Presentation.Avalonia.Services;
 using Stride.Core.Presentation.Services;
 using Stride.Core.Presentation.ViewModels;
+using Stride.GameStudio.Avalonia.Settings;
 using Stride.GameStudio.Avalonia.Views;
 using Stride.Core.Assets.Editor.ViewModels.Progress;
 using Stride.Core.Assets.Presentation.ViewModels;
@@ -89,7 +91,7 @@ internal class EditorDialogService : DialogService, IEditorDialogService, IProgr
 
     /// <inheritdoc/>
     /// <remarks>
-    /// As in WPF, the window opens when the delay is over while the work goes on, or as soon as the work finishes when it should stay
+    /// The window opens when the delay is over while the work goes on, or as soon as the work finishes when it should stay
     /// open (its errors); it does not open at all when the work finishes before the delay without a reason to stay open. It also
     /// waits for the message boxes that are up (the upgrade question asked while a session loads), which it would hide.
     /// </remarks>
@@ -167,8 +169,8 @@ internal class EditorDialogService : DialogService, IEditorDialogService, IProgr
 
     public void ClearKeyboardFocus()
     {
-        // A text box commits its edit when it loses the focus (the property grid's do): move the focus away from it, as WPF
-        // moves it to the main window. Other controls keep it, such as the code editor, where the user goes on typing.
+        // A text box commits its edit when it loses the focus (the property grid's do): move the focus away from it, to the main
+        // window. Other controls keep it, such as the code editor, where the user goes on typing.
         Dispatcher.Invoke(() =>
         {
             if (MainWindow is { FocusManager: { } focusManager } window && focusManager.GetFocusedElement() is TextBox)
@@ -181,7 +183,7 @@ internal class EditorDialogService : DialogService, IEditorDialogService, IProgr
 
     /// <inheritdoc/>
     /// <remarks>
-    /// As WPF's delayed notifications, the question waits for the editor to come to the front again (the user edits the code in an
+    /// The question waits for the editor to come to the front again (the user edits the code in an
     /// IDE), and for the dialog that is up to close: the main window is activated then.
     /// </remarks>
     public async Task WaitForMainWindowActiveAsync(CancellationToken token = default)
@@ -228,6 +230,23 @@ internal class EditorDialogService : DialogService, IEditorDialogService, IProgr
         {
             var window = new FixAssetReferencesWindow { DataContext = fixReferences };
             return await window.ShowDialog<bool>(ActiveWindow ?? MainWindow);
+        });
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>One package is picked; the window has a search box.</remarks>
+    public async Task<IReadOnlyCollection<PickablePackageViewModel>?> ShowPackagePickerDialogAsync(SessionViewModel session, Func<PickablePackageViewModel, bool> filter)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        if (MainWindow is null) return null;
+
+        var candidates = await session.SuggestPackagesToAddAsync();
+        return await Dispatcher.InvokeTask(async () =>
+        {
+            var picker = new PackagePickerViewModel(serviceProvider, candidates, filter);
+            var window = new PackagePickerWindow { DataContext = picker };
+            var picked = await window.ShowDialog<bool>(ActiveWindow ?? MainWindow);
+            return picked ? picker.SelectedPackages : null;
         });
     }
 
@@ -288,16 +307,44 @@ internal class EditorDialogService : DialogService, IEditorDialogService, IProgr
         });
     }
 
-    public async Task ShowSettingsWindowAsync()
+    /// <summary>
+    /// Shows the settings window: the settings by category, and the Keyboard shortcuts page while commands are registered.
+    /// </summary>
+    /// <param name="showShortcuts">Whether it opens on the Keyboard shortcuts page.</param>
+    public async Task ShowSettingsWindowAsync(bool showShortcuts = false)
     {
         if (MainWindow is null) return;
 
         await Dispatcher.InvokeTask(async () =>
         {
-            await new SettingsWindow
+            var window = new SettingsWindow
             {
-                DataContext = new SettingsViewModel(serviceProvider, EditorSettings.SettingsContainer.CurrentProfile)
-            }.ShowDialog(MainWindow);
+                DataContext = new SettingsViewModel(serviceProvider, EditorSettings.SettingsContainer.CurrentProfile),
+                Shortcuts = CreateShortcutsPage(serviceProvider),
+            };
+            if (showShortcuts)
+                window.ShowShortcutsPage();
+            await window.ShowDialog(MainWindow);
+        });
+    }
+
+    /// <summary>
+    /// The Keyboard shortcuts page of the commands of the plugin host, over the user's shortcuts of the current settings profile;
+    /// null when the host has no command (no session is open).
+    /// </summary>
+    internal static KeyboardShortcutsViewModel? CreateShortcutsPage(IViewModelServiceProvider serviceProvider)
+    {
+        if (serviceProvider.TryGet<IAssetsPluginService>() is not EditorPluginHost host || host.Commands.Items.Count == 0)
+            return null;
+        var key = GameStudioEditorSettings.ShortcutOverrides;
+        var profile = EditorSettings.SettingsContainer.CurrentProfile;
+        return new KeyboardShortcutsViewModel(serviceProvider, host, key.GetValue(profile, true), overrides =>
+        {
+            // A key not in the user's settings yet goes there first, so that the change is one the dialog saves (the main
+            // window then binds the shortcuts again) or discards
+            if (!profile.ContainsKey(key))
+                key.SetValue(new Dictionary<string, string>(key.GetValue(profile, true)), profile);
+            key.SetValue(new Dictionary<string, string>(overrides), profile);
         });
     }
 }

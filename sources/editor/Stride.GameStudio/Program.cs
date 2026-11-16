@@ -15,8 +15,10 @@ using System.Windows;
 using System.Windows.Threading;
 using Stride.Assets;
 using Stride.Assets.Presentation;
+using Stride.Assets.Presentation.SceneEditor.Services;
 using Stride.Core.Assets;
 using Stride.Core.Assets.Editor;
+using Stride.Core.Assets.Editor.Components.Build;
 using Stride.Core.Assets.Editor.Components.TemplateDescriptions;
 using Stride.Core.Assets.Editor.Components.TemplateDescriptions.Views;
 using Stride.Core.Assets.Editor.Services;
@@ -156,8 +158,7 @@ public static partial class Program
         }
 
         // We use MRU of the current version only when we're trying to reload last session.
-        var mru = new MostRecentlyUsedFileCollection(InternalSettings.LoadProfileCopy, GameStudioInternalSettings.MostRecentlyUsedSessions, InternalSettings.SaveProfile);
-        mru.LoadFromSettings();
+        var mru = RecentSessionsSettings.CreateMostRecentlyUsedFiles();
 
         // The settings translate their names when their class is first used: the language comes first, read from the file
         InitializeLanguageSettings(EditorLanguageSettings.Read(EditorPath.EditorConfigPath));
@@ -443,8 +444,7 @@ public static partial class Program
             }
 
             // We use a MRU that contains the older version projects to display in the editor
-            var mru = new MostRecentlyUsedFileCollection(InternalSettings.LoadProfileCopy, GameStudioInternalSettings.MostRecentlyUsedSessions, InternalSettings.SaveProfile);
-            mru.LoadFromSettings();
+            var mru = RecentSessionsSettings.CreateMostRecentlyUsedFiles();
             var editor = new GameStudioViewModel(serviceProvider, mru);
             AssetsPlugin.RegisterPlugin(typeof(StrideDefaultAssetsWpfPlugin));
             var strideEditorPlugin = (StrideEditorPlugin)AssetsPlugin.RegisterPlugin(typeof(StrideEditorPlugin));
@@ -641,9 +641,21 @@ public static partial class Program
             LoadingMarker = offerSafeMode ? PluginLoadingMarker.CreateDefault() : null,
             Extensions = offerSafeMode ? EditorExtensionService.CreateDefault() : null,
         };
-        var services = new List<object>{ new DispatcherService(Dispatcher.CurrentDispatcher), dialogService, pluginService };
+        var services = new List<object>
+        {
+            new DispatcherService(Dispatcher.CurrentDispatcher),
+            dialogService,
+            pluginService,
+            // Build project and Start project, with the editor's crash reporter
+            new MSBuildGameProjectBuilder(new BuildCrashRouting()),
+            new GameProcessLauncher(),
+        };
         if (renderDocManager != null)
+        {
             services.Add(renderDocManager);
+            // The cubemap capture and the light probe computation of the scene editor capture a RenderDoc frame
+            services.Add(new RenderDocFrameCaptureService(renderDocManager));
+        }
         var serviceProvider = new ViewModelServiceProvider(services);
         return serviceProvider;
     }

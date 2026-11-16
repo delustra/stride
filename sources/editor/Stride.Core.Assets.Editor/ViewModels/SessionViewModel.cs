@@ -75,9 +75,13 @@ public sealed partial class SessionViewModel : DirtiableEditableViewModel, IAsse
     private readonly IDebugPage? quantumDebugPage;
     private readonly IDebugPage? undoRedoStackPage;
 
-    private SessionViewModel(IViewModelServiceProvider serviceProvider, PackageSession session, IMainViewModel main, ILogger logger)
+    // The scope of the session, a child of the editor's services, which the session disposes when it is destroyed
+    private readonly ViewModelServiceProvider sessionServices;
+
+    private SessionViewModel(ViewModelServiceProvider serviceProvider, PackageSession session, IMainViewModel main, ILogger logger)
         : base(serviceProvider)
     {
+        sessionServices = serviceProvider;
         this.session = session;
         Main = main;
         undoRedoService = ServiceProvider.Get<IUndoRedoService>();
@@ -380,6 +384,11 @@ public sealed partial class SessionViewModel : DirtiableEditableViewModel, IAsse
     internal PackageSession PackageSession => session;
 
     /// <summary>
+    /// Brings into the session the changes made to its asset files outside of the editor; the tests replace it, and the session disposes it.
+    /// </summary>
+    internal ExternalAssetChangeTracker? ExternalAssetChanges { get => externalAssetChanges; set => externalAssetChanges = value; }
+
+    /// <summary>
     /// The processing of the packages the session opened with: the references of their assets, then the queueing of their
     /// thumbnails. The session can be used before it ends.
     /// </summary>
@@ -461,6 +470,11 @@ public sealed partial class SessionViewModel : DirtiableEditableViewModel, IAsse
     /// Raised when the session state changed (e.g. current package).
     /// </summary>
     public event EventHandler<SessionStateChangedEventArgs>? SessionStateChanged;
+
+    /// <summary>
+    /// Raised on the UI thread after the session was saved, also when the save failed for some of its files.
+    /// </summary>
+    public event EventHandler? SessionSaved;
 
     #region ISessionViewModel
     IAssetCollectionViewModel ISessionViewModel.ActiveAssetView => AssetCollection;
@@ -751,6 +765,9 @@ public sealed partial class SessionViewModel : DirtiableEditableViewModel, IAsse
 
         // Last, once nothing of the session follows its packages: this stops the source tracking and its thread
         session.Dispose();
+
+        // The services of the session go with it; those of the editor stay
+        sessionServices.Dispose();
     }
 
     /// <summary>
@@ -944,6 +961,9 @@ public sealed partial class SessionViewModel : DirtiableEditableViewModel, IAsse
 
             AllPackages.ForEach(x => x.OnSessionSaved());
         }
+
+        // The files of the assets written before an error are on the disk too
+        SessionSaved?.Invoke(this, EventArgs.Empty);
 
         UpdateSessionState();
         UpdateHasUnsavedChanges();

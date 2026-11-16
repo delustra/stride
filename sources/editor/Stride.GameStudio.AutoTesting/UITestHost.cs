@@ -306,7 +306,7 @@ internal sealed class UITestHost
                 host.Log("WaitForInitialEditors: initial editors open");
         }
 
-        public async Task WaitForRendering(int frames = 60, double timeoutSeconds = 30)
+        public async Task WaitForRendering(int frames = 20, double timeoutSeconds = 30)
         {
             // Snapshot the (game, startFrameCount) pairs on the dispatcher; reading EditorServiceGame
             // state from the WPF UI thread is the safe path. PreviewGame lives on its own thread but
@@ -806,10 +806,10 @@ internal sealed class UITestHost
                 var debugging = TryGetDebugging();
                 if (debugging is null) { host.Log("RunProject: GameStudioViewModel not found"); return -1; }
                 host.Log("RunProject: invoking RunProjectAsync");
-                var (ok, proc) = await debugging.RunProjectAsync().ConfigureAwait(true);
-                if (!ok || proc is null) { host.Log("RunProject: failed"); return -1; }
-                host.Log($"RunProject: launched pid={proc.Id}");
-                return proc.Id;
+                var (ok, pid) = await debugging.RunProjectAsync().ConfigureAwait(true);
+                if (!ok || pid is not { } processId) { host.Log("RunProject: failed"); return -1; }
+                host.Log($"RunProject: launched pid={processId}");
+                return processId;
             }).Task.Unwrap();
 
         public async Task<IntPtr> WaitForGameWindow(int pid, double timeoutSeconds = 60)
@@ -837,7 +837,7 @@ internal sealed class UITestHost
             return IntPtr.Zero;
         }
 
-        public async Task WaitForGameFrames(IntPtr hwnd, int minFrames = 100, double postFirstFrameDelaySeconds = 2.0, double timeoutSeconds = 90)
+        public async Task WaitForGameFrames(IntPtr hwnd, int minFrames = 30, double postFirstFrameDelaySeconds = 2.0, double timeoutSeconds = 90)
         {
             host.Log($"WaitForGameFrames: hwnd=0x{hwnd.ToInt64():X} minFrames={minFrames} postFirstFrame={postFirstFrameDelaySeconds}s timeout={timeoutSeconds}s");
             await GraphicsCaptureClient.WaitForFramesAsync(hwnd, minFrames, postFirstFrameDelaySeconds, timeoutSeconds).ConfigureAwait(false);

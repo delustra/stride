@@ -6,6 +6,7 @@ using System.Diagnostics;
 using Avalonia;
 using Stride.Core.Assets;
 using Stride.Core.Assets.Editor.Components.Build;
+using Stride.Core.Presentation.Avalonia.Commands;
 using Stride.Core.Assets.Editor.Components.Status;
 using Stride.Core.Assets.Editor.Components.TemplateDescriptions;
 using Stride.Core.Assets.Editor.Components.Transactions;
@@ -14,6 +15,7 @@ using Stride.Core.Assets.Editor.Plugins;
 using Stride.Core.Assets.Editor.Services;
 using Stride.Core.Assets.Editor.Settings;
 using Stride.Core.Assets.Editor.ViewModels;
+using Stride.Core.CodeEditorSupport;
 using Stride.Core.Diagnostics;
 using Stride.Core.Extensions;
 using Stride.Core.IO;
@@ -25,12 +27,11 @@ using Stride.Core.Presentation.ViewModels;
 using Stride.Core.Presentation.Windows;
 using Stride.Core.Translation;
 using Stride.Editor;
-using Stride.Editor.Build;
+using Stride.GameStudio.Avalonia.Commands;
 using Stride.GameStudio.Avalonia.Docking;
 using Stride.GameStudio.Avalonia.Helpers;
 using Stride.GameStudio.Avalonia.Services;
 using Stride.GameStudio.Avalonia.Settings;
-using Stride.Core.Assets.Editor.ViewModels.Progress;
 
 namespace Stride.GameStudio.Avalonia.ViewModels;
 
@@ -49,8 +50,10 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
     private UFile? sessionPath;
     private SessionEditorsRestorer? editorsRestorer;
     private readonly List<PanelActivation> panelActivations = [];
+    private readonly PanelCommands? panelCommands;
     private string? sessionName;
     private string title = baseTitle;
+    private IReadOnlyList<IDEInfo>? availableIDEs;
 
 #if DEBUG
     // Note: only required for the Avalonia designer
@@ -78,9 +81,11 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
         ClearRecentFilesCommand = new AnonymousCommand(serviceProvider, ClearRecentFiles);
         OpenDebugWindowCommand = new AnonymousTaskCommand(serviceProvider, OnOpenDebugWindow, () => DialogService.HasMainWindow);
         OpenSettingsWindowCommand = new AnonymousTaskCommand(serviceProvider, OnOpenSettingsWindow, () => DialogService.HasMainWindow);
+        OpenKeyboardShortcutsCommand = new AnonymousTaskCommand(serviceProvider, () => DialogService.ShowSettingsWindowAsync(showShortcuts: true), () => DialogService.HasMainWindow);
         OpenWebPageCommand = new AnonymousTaskCommand<string>(serviceProvider, OnOpenWebPage);
+        CommandPaletteCommand = new AnonymousCommand(serviceProvider, () => ShowCommandPalette?.Invoke(null));
         ReloadCommand = new AnonymousTaskCommand(serviceProvider, OnReload);
-        // Enabled while a session is open, even without a change, as in WPF
+        // Enabled while a session is open, even without a change
         SaveCommand = new AnonymousTaskCommand(serviceProvider, OnSave) { IsEnabled = false };
         UndoCommand = new AnonymousCommand(serviceProvider, () => history?.UndoCommand.Execute()) { IsEnabled = false };
         RedoCommand = new AnonymousCommand(serviceProvider, () => history?.RedoCommand.Execute()) { IsEnabled = false };
@@ -101,12 +106,15 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
         serviceProvider.RegisterService(Panels);
         RegisterBuiltInPanels(registry, host);
         ViewMenu = new ViewMenuViewModel(serviceProvider, Panels);
+        // The View menu's panel toggles are commands of the registry
+        if (host is not null)
+            panelCommands = new PanelCommands(host, Panels);
         // In safe mode, a banner says how many plugins are off, with "Restart normally" and the Plugins panel
         if (host is not null)
             SafeModeBanner = new SafeModeBannerViewModel(serviceProvider, host, this, () => Panels.Show(BuiltInPanels.Plugins), () => session is not null);
 
         // The most recently used sessions of this and the earlier editor versions
-        MRU = GameStudioInternalSettings.CreateMostRecentlyUsedFiles();
+        MRU = RecentSessionsSettings.CreateMostRecentlyUsedFiles();
         MRU.MostRecentlyUsedFiles.CollectionChanged += (_, _) => UpdateRecentFiles();
         UpdateRecentFiles();
     }
@@ -124,11 +132,17 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
     /// </summary>
     public SafeModeBannerViewModel? SafeModeBanner { get; }
 
+    /// <summary>
+    /// Loads the session file (a solution or a package) that <see cref="OpenSession"/> opens, with the load parameters of the
+    /// editor; the tests replace it to load the packages they write without the NuGet restore and MSBuild.
+    /// </summary>
+    internal Action<UFile, PackageSessionResult, PackageLoadParameters> LoadSessionFile { get; set; } = (path, result, loadParameters) => PackageSession.Load(path, result, loadParameters);
+
     /// <inheritdoc/>
     public string EditorToolkitName => EditorToolkits.Avalonia;
 
     /// <inheritdoc/>
-    /// <remarks>As in WPF, the shaders open with the shader editor of the settings.</remarks>
+    /// <remarks>The shaders open with the shader editor of the settings.</remarks>
     public IEnumerable<string> TextAssetTypes { get; } = [nameof(Stride.Assets.Effect.EffectShaderAsset), nameof(Stride.Assets.Effect.EffectCompositorAsset)];
 
     /// <inheritdoc/>
@@ -138,6 +152,23 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
     /// Builds the current project of the session and starts its game (the Project menu, the toolbar and the Output pane).
     /// </summary>
     public BuildAndRunViewModel Build { get; }
+
+    /// <summary>
+    /// The router of the Edit commands of the main view (Undo, Copy, Paste...), which act on the control that last had the
+    /// focus; set by the view, null without one. The Edit commands of the registry run its commands.
+    /// </summary>
+    internal EditCommandRouter? EditRouter { get; set; }
+
+    /// <summary>
+    /// Opens the command palette over the main window, with the element it was opened from (the control a key was pressed on,
+    /// for the Edit commands, or null for the main window); set by the view, null without one.
+    /// </summary>
+    internal Action<object?>? ShowCommandPalette { get; set; }
+
+    /// <summary>
+    /// Opens the command palette over the main window (<see cref="ShowCommandPalette"/>).
+    /// </summary>
+    internal ICommandBase CommandPaletteCommand { get; }
 
     /// <summary>
     /// Watches the game code of the session and reloads it when it changes, by opening the session again in a new editor (the
@@ -154,6 +185,12 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
     /// The panels and editors of the main window, and their layouts.
     /// </summary>
     public DockPanelService Panels { get; }
+
+    /// <summary>
+    /// The IDEs Open in IDE can start, as the toolbar lists them: the default one (of the settings), then the installed ones.
+    /// Looked up the first time they are shown.
+    /// </summary>
+    public IReadOnlyList<IDEInfo> AvailableIDEs => availableIDEs ??= [IDEInfo.DefaultIDE, .. IDEInfoVersions.AvailableIDEs()];
 
     /// <summary>
     /// The View menu: a toggle per panel, and Reset layout.
@@ -197,7 +234,7 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
 
     /// <summary>
     /// File > New: closes the session, if any, and shows the project selection window (a new project from a template, or a recent
-    /// project), as WPF's New command restarts the editor on the project selection.
+    /// project).
     /// </summary>
     public ICommandBase NewSessionCommand { get; }
 
@@ -207,7 +244,7 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
     public ICommandBase SelectProjectCommand { get; }
 
     /// <summary>
-    /// Shows the project selection window when the editor starts without a session. Cancelling exits the editor, as the WPF editor does.
+    /// Shows the project selection window when the editor starts without a session. Cancelling exits the editor.
     /// </summary>
     public ICommandBase SelectInitialProjectCommand { get; }
 
@@ -221,6 +258,11 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
     public ICommandBase OpenDebugWindowCommand { get; }
 
     public ICommandBase OpenSettingsWindowCommand { get; }
+
+    /// <summary>
+    /// Opens the settings window on its Keyboard shortcuts page.
+    /// </summary>
+    public ICommandBase OpenKeyboardShortcutsCommand { get; }
 
     public ICommandBase OpenWebPageCommand { get; }
 
@@ -335,7 +377,7 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
 
         ProcessService?.NotifySessionLoading();
         var sessionResult = new PackageSessionResult();
-        var loadedSession = await SessionViewModel.OpenSessionAsync(filePath, sessionResult, this, ServiceProvider, token);
+        var loadedSession = await SessionViewModel.OpenSessionAsync(filePath, loadParameters => LoadSessionFile(filePath, sessionResult, loadParameters), sessionResult, this, ServiceProvider, token);
 
         // Loading has failed
         if (loadedSession == null)
@@ -418,12 +460,12 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
     /// </summary>
     /// <param name="loadedSession">The session.</param>
     /// <param name="filePath">The file the session was opened from.</param>
-    /// <param name="isNew">Whether the session was just created: what an older session at the same path kept is forgotten, as in WPF.</param>
+    /// <param name="isNew">Whether the session was just created: what an older session at the same path kept is forgotten.</param>
     private void AttachSession(SessionViewModel loadedSession, UFile filePath, bool isNew = false)
     {
-        MRU.AddFile(filePath, StrideGameStudio.EditorVersionMajor);
+        // Written to the file with the list of recent sessions, which writes every setting this editor changed
         InternalSettings.FileDialogLastOpenSessionDirectory.SetValue(filePath.GetFullDirectory());
-        InternalSettings.Save();
+        MRU.AddFile(filePath, StrideGameStudio.EditorVersionMajor);
 
         sessionPath = filePath;
         Session = loadedSession;
@@ -440,8 +482,8 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
         Preview = new PreviewViewModel(Session);
 
         // The editors of the last session, or the default scene, now that the plugins have registered the editors; keyed by the
-        // solution, as in WPF
-        var sessionData = GameStudioInternalSettings.CreateMostRecentlyUsedSessionsData();
+        // solution
+        var sessionData = RecentSessionsSettings.CreateMostRecentlyUsedSessionsData();
         var dataPath = UPath.IsNullOrEmpty(Session.SolutionPath) ? filePath : Session.SolutionPath;
         if (isNew)
             sessionData.RemoveFile(dataPath);
@@ -449,14 +491,11 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
 
         // The panels, in the layout the session had in this editor (kept under the same path as its editors)
         Panels.OpenSession(Session, dataPath);
-        // The panels that come forward by themselves, as in WPF: the asset view when the solution explorer selects a folder, the
+        // The panels that come forward by themselves: the asset view when the solution explorer selects a folder, the
         // Output on an error of the build (the code reload builds there too)
         panelActivations.Add(PanelActivation.OnLocationChanged(Panels, BuiltInPanels.AssetView, Session.AssetCollection.SelectedLocations));
         panelActivations.Add(PanelActivation.OnLog(Panels, BuiltInPanels.BuildLog, Build.BuildLog.Messages));
 
-        // The build the session runs when it opens: thumbnails and previews wait for it. Shown before the editors open, which
-        // takes long enough for a build that has nothing to do to finish
-        _ = ShowShaderImportAsync(Session);
         editorsRestorer.Restore();
         SafeModeBanner?.Update();
     }
@@ -509,7 +548,7 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
     }
 
     /// <summary>
-    /// A build brings the Output forward, as in WPF.
+    /// A build brings the Output forward.
     /// </summary>
     private void BuildPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -537,61 +576,6 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
     private void UpdateTitle()
     {
         Title = sessionName is null ? baseTitle : $"{baseTitle} - {sessionName}{(session?.HasUnsavedChanges == true ? "*" : string.Empty)}";
-    }
-
-    /// <summary>
-    /// Shows the import of the system shaders in the notification bar until it is done; nothing when there is none to wait for.
-    /// </summary>
-    private async Task ShowShaderImportAsync(SessionViewModel openedSession)
-    {
-        // The import starts with the builder, so it may already be over here: its notification then shows and goes away at once
-        if (Notifications is null || openedSession.ServiceProvider.TryGet<GameStudioBuilderService>() is not { ShaderImportProgress: not null } builder)
-            return;
-
-        var logger = GlobalLogger.GetLogger("BuildOnOpen");
-        var progress = new WorkProgressViewModel(ServiceProvider, logger)
-        {
-            Title = Tr._p("Notification", "Importing the system shaders…"),
-            IsIndeterminate = true,
-            KeepOpen = KeepOpen.Never,
-        };
-        // The import reports its steps from a thread of the builder: never block it on the UI thread (WorkProgressViewModel's own
-        // RegisterProgressStatus dispatches synchronously), which may itself be waiting for the builder (when the session closes)
-        void ImportProgressChanged(object? sender, ProgressStatusEventArgs e)
-        {
-            progress.Dispatcher.InvokeAsync(() =>
-            {
-                if (progress.WorkDone)
-                    return;
-                progress.IsIndeterminate = !e.HasKnownSteps;
-                progress.Minimum = 0;
-                progress.Maximum = e.StepCount;
-                progress.ProgressValue = e.CurrentStep;
-                progress.ProgressMessage = e.Message;
-            });
-        }
-
-        var importProgress = builder.ShaderImportProgress;
-        if (importProgress is not null)
-            importProgress.ProgressChanged += ImportProgressChanged;
-        ServiceProvider.Get<IEditorDialogService>().ShowNotification(progress);
-
-        var error = false;
-        try
-        {
-            await builder.WaitForShadersAsync();
-        }
-        catch (Exception e)
-        {
-            logger.Error("The import of the system shaders failed.", e);
-            error = true;
-        }
-        finally
-        {
-            if (importProgress is not null)
-                importProgress.ProgressChanged -= ImportProgressChanged;
-            await progress.NotifyWorkFinished(false, error);
-        }
     }
 
     private static IReadOnlyList<FilePickerFilter> SessionFileFilters =>
@@ -675,7 +659,7 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
 
     private async Task OnSave()
     {
-        // A saved session goes to the top of the recent sessions (AddRecentFile), as in WPF
+        // A saved session goes to the top of the recent sessions (AddRecentFile)
         if (session is not null)
             await session.SaveSessionAsync();
     }
@@ -686,7 +670,7 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
     }
 
     /// <summary>
-    /// Opens the same session in a fresh editor, as WPF's Reload project does, after asking whether to save it.
+    /// Opens the same session in a fresh editor (Reload project), after asking whether to save it.
     /// </summary>
     /// <returns><c>true</c> when the editor restarts, <c>false</c> when the user kept the session open or there is none.</returns>
     private async Task<bool> ReloadSessionAsync()
@@ -711,8 +695,8 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
 
     /// <summary>
     /// Closes the session, after asking whether to save it, and opens another one, or the project selection, in a fresh editor:
-    /// a new process once this one has loaded a session (<see cref="EditorProcessService"/>), as WPF's New, Open and Reload
-    /// restart the process; otherwise, or when the host cannot start one, in this process.
+    /// a new process once this one has loaded a session (<see cref="EditorProcessService"/>);
+    /// otherwise, or when the host cannot start one, in this process.
     /// </summary>
     /// <param name="filePath">The session to open; <c>null</c> for the project selection.</param>
     /// <param name="safeMode">Whether the fresh editor runs in safe mode; null to keep this one's mode.</param>
@@ -752,7 +736,7 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
     }
 
     /// <summary>
-    /// Asks whether to save the session before it closes, as WPF does: one question (Save, Don't save, Cancel) covers the
+    /// Asks whether to save the session before it closes: one question (Save, Don't save, Cancel) covers the
     /// unsaved changes of the assets and those of the open editors (the text of a script), which make their asset dirty.
     /// The editors then close without asking.
     /// </summary>
@@ -804,6 +788,7 @@ internal sealed class MainViewModel : ViewModelBase, IMainViewModel, IEditorRest
     /// <inheritdoc/>
     public override void Destroy()
     {
+        panelCommands?.Dispose();
         SafeModeBanner?.Dispose();
         base.Destroy();
     }
