@@ -27,12 +27,16 @@ them.
 | Collider change in place | `fix/compound-change-in-place` | [#3532](https://github.com/stride3d/stride/pull/3532) | A collider change reshapes a live collidable in place and moves its constraints with the center of mass |
 | Lighting sets | `feat/lighting-sets` | [#3946](https://github.com/stride3d/stride/pull/3946) (draft) | `ForwardLightingRenderFeature` compiles an effect for the lights of the views that draw its object, not for the union of every view's lights, so a compositor whose views have lights of their own does not compile every material again; views lit alike (the same groups with the same light counts, `LightShaderGroup.GetLightCount`) share one lighting set, so two cameras on one scene or the eyes of a headset lay out the one set a single view gives, and an object drawn in no lit view has none; a group whose renderer names no view (one outside the engine) lights every effect, as before the lighting sets, and `LightVoxelRenderer` marks its views as `LightSkyboxRenderer` does; `LightingSetsTest` |
 | Upload buffer race | `fix/upload-buffer-race` | not offered yet | A replaced upload buffer stays mapped until every caller that took space in it is done, so textures loaded on several threads (the Avalonia Game Studio's thumbnails) no longer write to unmapped memory on Vulkan; the Direct3D 12 allocator takes a lock and the same lease; `TestUploadBufferThreads` |
-| ImageSharp 3.2.0 | `chore/imagesharp-3.2.0` | [#3971](https://github.com/stride3d/stride/pull/3971) | `SixLabors.ImageSharp` 3.2.0; 3.1.12 has [GHSA-jjfr-hcj7-qf5w](https://github.com/advisories/GHSA-jjfr-hcj7-qf5w) |
 | .NET 11 | `crafter` only | fork-only | The engine, editors, tools, tests, samples and templates target `net11.0` (`StrideFramework` and the TFMs derived from it), `global.json` pins SDK 11.0.100 and the CI workflows set up 11.0.x; the framework packages are on 11.0.0 (System.Text.Json, System.Management, Microsoft.Extensions.DependencyModel, Microsoft.Extensions.DependencyInjection.Abstractions) the SDK-band ones on 11.0.100 (TemplateEngine, SourceLink, ApiCompat) and NuGet.* on 8.0.0, the version SDK 11 ships. The asset compiler's runtime config template no longer passes `GenerateRuntimeConfigDevFile`, which SDK 11 removed, and the NuGet resolver's bootstrap set takes `Microsoft.Extensions.FileProviders.Abstractions` and `Primitives` only when the build copies them (they are part of the .NET 11 runtime). `deps/AssemblyProcessor/net10.0` stays: the build loads the netstandard2.0 one |
 | Pack (Crafter) workflow | `crafter` only | fork-only | `.github/workflows/pack-crafter.yml` builds a ref's NuGet packages for Windows and Linux as `<MajorMinor.Patch>-dev.<run>` and publishes them to the `engine-packages-<ref>` release |
 
 To update `crafter`, merge upstream `master` into it, then merge again each change's branch that moved.
 When a change lands upstream, its row goes. Every merge into `crafter` keeps this table in step.
+
+Pending: `SixLabors.ImageSharp` 3.2.0 (`chore/imagesharp-3.2.0`, [#3971](https://github.com/stride3d/stride/pull/3971)),
+for the advisories against 3.1.12 (GHSA-jjfr-hcj7-qf5w and five others NuGet reports). 3.2.0 validates a Six Labors
+license key before `CoreCompile` and fails a Release build without one, so `crafter` stays on 3.1.12 until the key
+question is settled.
 
 # Welcome to the Stride Game Engine
 
