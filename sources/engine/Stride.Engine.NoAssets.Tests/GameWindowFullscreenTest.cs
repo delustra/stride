@@ -52,7 +52,7 @@ public class GameWindowFullscreenTest : GameTestBase
             try
             {
                 var window = game.Window;
-                // Without WinForms support in this build (net10.0, no STRIDE_UI_WINFORMS) a WinForms context falls back to SDL
+                // Without WinForms support in this build (net11.0, no STRIDE_UI_WINFORMS) a WinForms context falls back to SDL
                 if (contextType == AppContextType.DesktopWinForms && window.GetType().Name != "GameWindowWinforms")
                 {
                     skipReason = $"This build has no WinForms window, the game created a {window.GetType().Name}";

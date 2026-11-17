@@ -39,7 +39,7 @@ The script:
 dotnet build sources\tools\Stride.Core.Translation.Extractor -c Debug
 ```
 
-The script looks for the binary at `bin\Debug\net10.0\Stride.Core.Translation.Extractor.exe`. The tool runs cross-platform (no WPF dependency).
+The script looks for the binary at `bin\Debug\net11.0\Stride.Core.Translation.Extractor.exe`. The tool runs cross-platform (no WPF dependency).
 
 ## Adding translatable strings
 

@@ -16,7 +16,7 @@ public static class TestPackage
     public const string ProjectFile = """
         <Project Sdk="Microsoft.NET.Sdk">
           <PropertyGroup>
-            <TargetFramework>net10.0</TargetFramework>
+            <TargetFramework>net11.0</TargetFramework>
             <StrideContainsAssetTypes>false</StrideContainsAssetTypes>
           </PropertyGroup>
         </Project>

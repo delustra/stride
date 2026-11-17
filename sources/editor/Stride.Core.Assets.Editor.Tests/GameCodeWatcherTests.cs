@@ -93,12 +93,12 @@ public sealed class GameCodeWatcherTests : IDisposable
         var bursts = Record(watcher);
         var gameDirectory = Path.GetDirectoryName(game)!;
 
-        Change(watcher, FileEventChangeType.Changed, Path.Combine(gameDirectory, "obj", "Debug", "net10.0", "MyGame.AssemblyInfo.cs"));
+        Change(watcher, FileEventChangeType.Changed, Path.Combine(gameDirectory, "obj", "Debug", "net11.0", "MyGame.AssemblyInfo.cs"));
         Change(watcher, FileEventChangeType.Changed, Path.Combine(gameDirectory, "Bin", "Generated.cs"));
         Change(watcher, FileEventChangeType.Changed, Path.Combine(gameDirectory, ".vs", "Backup.cs"));
         Change(watcher, FileEventChangeType.Changed, Path.Combine(gameDirectory, "Assets", "MainScene.sdscene"));
         Change(watcher, FileEventChangeType.Changed, Path.Combine(gameDirectory, "Resources", "Logo.png"));
-        Change(watcher, FileEventChangeType.Changed, Path.Combine(gameDirectory, "obj", "Debug", "net10.0", "Avalonia", "StoryEditorView.axaml"));
+        Change(watcher, FileEventChangeType.Changed, Path.Combine(gameDirectory, "obj", "Debug", "net11.0", "Avalonia", "StoryEditorView.axaml"));
         Change(watcher, FileEventChangeType.Changed, Path.Combine(gameDirectory, "Tools", "Program.cs"));
         Change(watcher, FileEventChangeType.Changed, nestedHead);
         Change(watcher, FileEventChangeType.Changed, Path.Combine(Path.GetDirectoryName(head)!, "MyGameApp.cs"));

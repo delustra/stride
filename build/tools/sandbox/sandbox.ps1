@@ -303,7 +303,7 @@ function Invoke-Start {
     if ($fromRepo) {
         $state.repo = $Repo
         $state.version = Get-DevVersion $Repo
-        $state.gameStudio = Join-Path $Repo "sources\editor\Stride.GameStudio\bin\$Configuration\net10.0-windows\Stride.GameStudio.exe"
+        $state.gameStudio = Join-Path $Repo "sources\editor\Stride.GameStudio\bin\$Configuration\net11.0-windows\Stride.GameStudio.exe"
         if (-not (Test-Path $state.gameStudio)) {
             Fail "no Game Studio build at $($state.gameStudio). Build it first:`n  dotnet build sources\editor\Stride.GameStudio\Stride.GameStudio.csproj -c $Configuration"
         }
@@ -460,9 +460,9 @@ function Invoke-Start {
         if ($fromRepo) {
             # Game Studio and the asset compiler write local, roaming and cache next to their exe, in the read-only repo:
             # each gets a writable folder of the work folder in its place
-            $bins = @("sources\editor\Stride.GameStudio\bin\$Configuration\net10.0-windows",
-                      "sources\assets\Stride.AssetCompiler\bin\$Configuration\net10.0",
-                      "sources\assets\Stride.AssetCompiler\bin\$Configuration\net10.0-windows")
+            $bins = @("sources\editor\Stride.GameStudio\bin\$Configuration\net11.0-windows",
+                      "sources\assets\Stride.AssetCompiler\bin\$Configuration\net11.0",
+                      "sources\assets\Stride.AssetCompiler\bin\$Configuration\net11.0-windows")
             $index = 0
             foreach ($bin in $bins) {
                 $index++

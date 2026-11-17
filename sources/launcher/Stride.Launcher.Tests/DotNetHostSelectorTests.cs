@@ -177,10 +177,10 @@ public class DotNetHostSelectorTests
     {
         // The editor loads a multi-targeting project's first framework, so that one decides.
         using var temp = new TempDirectory();
-        temp.Write("Game.Windows/Game.Windows.csproj", "<Project><PropertyGroup><OutputType>Exe</OutputType><TargetFrameworks>net10.0;net11.0</TargetFrameworks></PropertyGroup></Project>");
+        temp.Write("Game.Windows/Game.Windows.csproj", "<Project><PropertyGroup><OutputType>Exe</OutputType><TargetFrameworks>net11.0;net11.0</TargetFrameworks></PropertyGroup></Project>");
         Assert.Equal(10, GetRequiredMajor(temp.Path("Game.Windows/Game.Windows.csproj")));
 
-        temp.Write("Game.Windows/obj/project.assets.json", """{ "project": { "frameworks": { "net11.0": {}, "net10.0": {} } } }""");
+        temp.Write("Game.Windows/obj/project.assets.json", """{ "project": { "frameworks": { "net11.0": {}, "net11.0": {} } } }""");
         Assert.Equal(11, GetRequiredMajor(temp.Path("Game.Windows/Game.Windows.csproj")));
     }
 
@@ -189,7 +189,7 @@ public class DotNetHostSelectorTests
     {
         // Moving a project to a newer .NET and opening it before any restore: the assets file still has the old framework.
         using var temp = new TempDirectory();
-        temp.Write("Game.Windows/obj/project.assets.json", """{ "project": { "frameworks": { "net10.0": {} } } }""");
+        temp.Write("Game.Windows/obj/project.assets.json", """{ "project": { "frameworks": { "net11.0": {} } } }""");
         File.SetLastWriteTimeUtc(temp.Path("Game.Windows/obj/project.assets.json"), DateTime.UtcNow.AddMinutes(-10));
         temp.Write("Game.Windows/Game.Windows.csproj", "<Project><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net12.0</TargetFramework></PropertyGroup></Project>");
         Assert.Equal(12, GetRequiredMajor(temp.Path("Game.Windows/Game.Windows.csproj")));
@@ -241,7 +241,7 @@ public class DotNetHostSelectorTests
         temp.Write("app/App.runtimeconfig.json", """
             {
               "runtimeOptions": {
-                "tfm": "net10.0",
+                "tfm": "net11.0",
                 "framework": { "name": "Microsoft.NETCore.App", "version": "10.0.0" },
                 "configProperties": { "System.GC.Server": true }
               }

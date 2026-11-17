@@ -147,9 +147,9 @@ internal static class TestEnvironment
         Directory.CreateDirectory(restoreDir);
         NuGetConsumerFeed.WriteStrictNuGetConfig(restoreDir, SharedPackagesFolder, fallbackFolder: null);
         var project = Path.Combine(restoreDir, "SharedPackages.csproj");
-        // The games build for net10.0; on Windows, a session restores its companions for net10.0-windows7.0, whose
+        // The games build for net11.0; on Windows, a session restores its companions for net11.0-windows7.0, whose
         // dependency groups differ (Stride.Input's SharpDX)
-        var frameworks = OperatingSystem.IsWindows() ? "net10.0;net10.0-windows7.0" : "net10.0";
+        var frameworks = OperatingSystem.IsWindows() ? "net11.0;net11.0-windows7.0" : "net11.0";
         new XDocument(new XElement("Project", new XAttribute("Sdk", "Microsoft.NET.Sdk"),
             new XElement("PropertyGroup", new XElement("TargetFrameworks", frameworks)),
             new XElement("ItemGroup",

@@ -1,7 +1,7 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 #:property OutputType=Library
-#:property TargetFramework=net10.0
+#:property TargetFramework=net11.0
 #:property PublishAot=false
 
 // .NET startup hook for the Windows Sandbox kit (see README.md): logs every first-chance exception of Game Studio to

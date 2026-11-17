@@ -22,7 +22,7 @@ namespace Stride.Assets.Tests
             Stride.Core.Assets.PackageSessionPublicHelper.FindAndSetMSBuildVersion();
 
             // An engine checkout whose asset compiler was built in Debug only
-            var compiler = Path.Combine(directory, "stride", "sources", "assets", "Stride.AssetCompiler", "bin", "Debug", "net10.0", "Stride.AssetCompiler.dll");
+            var compiler = Path.Combine(directory, "stride", "sources", "assets", "Stride.AssetCompiler", "bin", "Debug", "net11.0", "Stride.AssetCompiler.dll");
             Directory.CreateDirectory(Path.GetDirectoryName(compiler)!);
             File.WriteAllText(compiler, "");
             Directory.CreateDirectory(Path.Combine(directory, "Plugin"));
@@ -39,7 +39,7 @@ namespace Stride.Assets.Tests
             // The dev package stubs set StrideDevConfiguration to the configuration the engine was built in
             var command = PrepareAssetCompiler(new() { ["Configuration"] = "Release", ["StrideDevConfiguration"] = "Debug" });
 
-            Assert.Equal(Path.Combine(directory, "stride", "sources", "assets", "Stride.AssetCompiler", "bin", "Debug", "net10.0", "Stride.AssetCompiler.dll"), Normalize(command));
+            Assert.Equal(Path.Combine(directory, "stride", "sources", "assets", "Stride.AssetCompiler", "bin", "Debug", "net11.0", "Stride.AssetCompiler.dll"), Normalize(command));
         }
 
         [Fact]
@@ -48,7 +48,7 @@ namespace Stride.Assets.Tests
             // No stub in the source tree: the compiler is the one built with the project
             var command = PrepareAssetCompiler(new() { ["Configuration"] = "Debug" });
 
-            Assert.Equal(Path.Combine(directory, "stride", "sources", "assets", "Stride.AssetCompiler", "bin", "Debug", "net10.0", "Stride.AssetCompiler.dll"), Normalize(command));
+            Assert.Equal(Path.Combine(directory, "stride", "sources", "assets", "Stride.AssetCompiler", "bin", "Debug", "net11.0", "Stride.AssetCompiler.dll"), Normalize(command));
         }
 
         private string PrepareAssetCompiler(Dictionary<string, string> properties)

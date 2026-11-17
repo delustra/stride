@@ -28,6 +28,6 @@ from the language. It requires a built `Stride.Shaders.Parsers.dll` (any recent 
 dotnet run generate-sdsl-grammar.cs
 ```
 
-It auto-locates the newest `net10.0` build of the parser under `sources/shaders/Stride.Shaders.Parsers/bin`, or
+It auto-locates the newest `net11.0` build of the parser under `sources/shaders/Stride.Shaders.Parsers/bin`, or
 takes an explicit path: `dotnet run generate-sdsl-grammar.cs -- <path-to-Stride.Shaders.Parsers.dll>`. Commit
 the regenerated grammar.

@@ -23,9 +23,9 @@ public sealed class AssetAssembly
         Path = path;
     }
 
-    /// <summary>The TFM this assembly was built for (e.g. <c>net10.0</c>, <c>net10.0-windows7.0</c>), or null if untagged.</summary>
+    /// <summary>The TFM this assembly was built for (e.g. <c>net11.0</c>, <c>net11.0-windows7.0</c>), or null if untagged.</summary>
     public string? TargetFramework { get; set; }
 
-    /// <summary>Package-relative path to the assembly (e.g. <c>../lib/net10.0/MyPlugin.dll</c>).</summary>
+    /// <summary>Package-relative path to the assembly (e.g. <c>../lib/net11.0/MyPlugin.dll</c>).</summary>
     public UFile? Path { get; set; }
 }

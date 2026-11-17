@@ -101,7 +101,7 @@ internal sealed class UpdateStrideVersionCommand : Command
 
         if (upgrade.RuntimeMissing)
         {
-            await appendLine("This needs the .NET 10 runtime, which wasn't found. Install it from https://dotnet.microsoft.com/download and try again.");
+            await appendLine("This needs the .NET 11 runtime, which wasn't found. Install it from https://dotnet.microsoft.com/download and try again.");
             return false;
         }
         if (!upgrade.Launched)
@@ -143,7 +143,7 @@ internal sealed class UpdateStrideVersionCommand : Command
         var available = await StrideCli.RunAsync(workingDirectory, ["sdk", "available", "--prerelease"], cancellationToken);
         if (available.RuntimeMissing)
         {
-            data.Fail("This needs the .NET 10 runtime, which wasn't found. Install it from https://dotnet.microsoft.com/download and try again.");
+            data.Fail("This needs the .NET 11 runtime, which wasn't found. Install it from https://dotnet.microsoft.com/download and try again.");
             return;
         }
         if (!available.Launched)

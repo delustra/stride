@@ -169,7 +169,7 @@ public class TestDependencyVersionChanges : IDisposable
     }
 
     private string PackageFile(string name, string version, string file)
-        => Path.Combine(packagesFolder, name.ToLowerInvariant(), version, "lib", "net10.0", file);
+        => Path.Combine(packagesFolder, name.ToLowerInvariant(), version, "lib", "net11.0", file);
 
     private string EmitLibrary(string name, string version, int typeCount)
     {
@@ -188,7 +188,7 @@ public class TestDependencyVersionChanges : IDisposable
     {
         var lockFile = new LockFile { Version = 3 };
         lockFile.PackageFolders.Add(new LockFileItem(packagesFolder + Path.DirectorySeparatorChar));
-        var target = new LockFileTarget { TargetFramework = NuGetFramework.Parse("net10.0") };
+        var target = new LockFileTarget { TargetFramework = NuGetFramework.Parse("net11.0") };
         foreach (var (name, version, files) in packages)
         {
             var nugetVersion = NuGetVersion.Parse(version);
@@ -196,7 +196,7 @@ public class TestDependencyVersionChanges : IDisposable
             lockFile.Libraries.Add(new LockFileLibrary { Name = name, Version = nugetVersion, Type = "package", Path = $"{name.ToLowerInvariant()}/{version}" });
             var library = new LockFileTargetLibrary { Name = name, Version = nugetVersion, Type = "package" };
             foreach (var file in files)
-                library.RuntimeAssemblies.Add(new LockFileItem($"lib/net10.0/{file}"));
+                library.RuntimeAssemblies.Add(new LockFileItem($"lib/net11.0/{file}"));
             target.Libraries.Add(library);
         }
         lockFile.Targets.Add(target);

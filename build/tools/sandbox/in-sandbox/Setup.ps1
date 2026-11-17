@@ -45,7 +45,7 @@ if ($Sandbox.gameStudioVersion) {
     # A released Game Studio, restored as a user gets it (C:\sbx\global.json picks the SDK)
     $restore = "$Sbx\gamestudio-restore"
     New-Item -ItemType Directory -Force $restore | Out-Null
-    Set-Content "$restore\restore.csproj" "<Project Sdk=`"Microsoft.NET.Sdk`"><PropertyGroup><TargetFramework>net10.0-windows</TargetFramework><NuGetAudit>false</NuGetAudit></PropertyGroup><ItemGroup><PackageReference Include=`"Stride.GameStudio`" Version=`"$($Sandbox.gameStudioVersion)`" /></ItemGroup></Project>"
+    Set-Content "$restore\restore.csproj" "<Project Sdk=`"Microsoft.NET.Sdk`"><PropertyGroup><TargetFramework>net11.0-windows</TargetFramework><NuGetAudit>false</NuGetAudit></PropertyGroup><ItemGroup><PackageReference Include=`"Stride.GameStudio`" Version=`"$($Sandbox.gameStudioVersion)`" /></ItemGroup></Project>"
     Push-Location $restore
     try { dotnet restore restore.csproj -nodeReuse:false 2>&1 | Select-Object -Last 5 } finally { Pop-Location }
     if ($LASTEXITCODE -ne 0) { throw "restore of Stride.GameStudio $($Sandbox.gameStudioVersion) failed" }

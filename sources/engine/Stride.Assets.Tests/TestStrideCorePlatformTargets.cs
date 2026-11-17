@@ -31,7 +31,7 @@ namespace Stride.Assets.Tests
         [Fact]
         public void ProjectWithoutPlatformGetsTheHostPlatform()
         {
-            // A plain library or test project (net10.0, no runtime identifier)
+            // A plain library or test project (net11.0, no runtime identifier)
             var expected = OperatingSystem.IsLinux() ? "Linux" : OperatingSystem.IsMacOS() ? "macOS" : "Windows";
 
             Assert.Equal(expected, Platform(new()));
@@ -49,7 +49,7 @@ namespace Stride.Assets.Tests
         [Fact]
         public void TargetPlatformGivesThePlatform()
         {
-            // A Windows head (net10.0-windows), whatever the host
+            // A Windows head (net11.0-windows), whatever the host
             Assert.Equal("Windows", Platform(new() { ["TargetPlatformIdentifier"] = "Windows" }));
         }
 

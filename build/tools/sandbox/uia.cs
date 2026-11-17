@@ -1,6 +1,6 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
-#:property TargetFramework=net10.0-windows
+#:property TargetFramework=net11.0-windows
 #:property UseWPF=true
 #:property UseWindowsForms=true
 #:property PublishAot=false

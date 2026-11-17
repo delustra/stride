@@ -53,7 +53,7 @@ namespace Stride.Assets
             {
                 Name = PlatformType.Windows.ToString(),
                 IsAvailable = true,
-                TargetFramework = "net10.0-windows",
+                TargetFramework = "net11.0-windows",
                 RuntimeIdentifier = "win-x64",
                 Type = PlatformType.Windows
             };
@@ -64,7 +64,7 @@ namespace Stride.Assets
             {
                 Name = PlatformType.Linux.ToString(),
                 IsAvailable = true,
-                TargetFramework = "net10.0",
+                TargetFramework = "net11.0",
                 RuntimeIdentifier = "linux-x64",
                 Type = PlatformType.Linux,
             };
@@ -75,7 +75,7 @@ namespace Stride.Assets
             {
                 Name = PlatformType.macOS.ToString(),
                 IsAvailable = true,
-                TargetFramework = "net10.0",
+                TargetFramework = "net11.0",
                 RuntimeIdentifier = "osx-x64",
                 Type = PlatformType.macOS,
             };
@@ -86,7 +86,7 @@ namespace Stride.Assets
             {
                 Name = PlatformType.Android.ToString(),
                 Type = PlatformType.Android,
-                TargetFramework = "net10.0-android",
+                TargetFramework = "net11.0-android",
                 IsAvailable = IsVSComponentAvailableAnyVersion(DotNetForAndroidComponents)
             };
             androidPlatform.DefineConstants.Add("STRIDE_PLATFORM_MONO_MOBILE");
@@ -113,7 +113,7 @@ namespace Stride.Assets
                 Name = PlatformType.iOS.ToString(),
                 SolutionName = "iPhone", // For iOS, we need to use iPhone as a solution name
                 Type = PlatformType.iOS,
-                TargetFramework = "net10.0-ios",
+                TargetFramework = "net11.0-ios",
                 IsAvailable = IsVSComponentAvailableAnyVersion(DotNetForiOSComponents)
             };
             iphonePlatform.PlatformsPart.Add(new SolutionPlatformPart("iPhoneSimulator"));
