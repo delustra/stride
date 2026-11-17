@@ -97,7 +97,7 @@
   <Target Name="_StrideSetupNativeLibraries" DependsOnTargets="_StrideBuildDependencies;GetCopyToOutputDirectoryItems"
           BeforeTargets="_CopyOutOfDateSourceItemsToOutputDirectory;_CopyOutOfDateSourceItemsToOutputDirectoryAlways;_CopyFilesMarkedCopyLocal"
           Condition="'$(StrideDependenciesCopy)' != 'false'">
-    <!-- net10.0-macos also copies to the output dir: the .app gets dylibs via NativeReference
+    <!-- net11.0-macos also copies to the output dir: the .app gets dylibs via NativeReference
          below, but test hosts (vstest) run the bare output dir and dlopen from there. -->
     <ItemGroup Condition=" '$(StrideTargetFramework)' == '$(StrideFramework)' Or '$(StrideTargetFramework)' == '$(StrideFrameworkWindows)' Or '$(StrideTargetFramework)' == '$(StrideFrameworkmacOS)' ">
       <!-- When RuntimeIdentifier is set, drop runtimes/<rid'>/native/X items whose <rid'> isn't ours
@@ -136,8 +136,8 @@
   </Target>
 
   <!-- StrideToolingHost (AssetCompiler, GameStudio): drop runtimes/<rid>/ assets that this desktop
-       host can't use from its no-RID output — mobile (android/ios/tvos, ~250 MB) on net10.0, plus
-       linux/osx on the Windows-only net10.0-windows. Covers NuGet assets (ReferenceCopyLocalPaths),
+       host can't use from its no-RID output — mobile (android/ios/tvos, ~250 MB) on net11.0, plus
+       linux/osx on the Windows-only net11.0-windows. Covers NuGet assets (ReferenceCopyLocalPaths),
        .ssdeps natives and Content copies (_SourceItemsToCopyToOutputDirectory[Always]); items outside
        runtimes/ are untouched. Normalize '\'→'/' — Replace('/','\\') yields a double backslash here,
        so 'runtimes/win-x64' would fail StartsWith('runtimes\win') and drop the win natives. -->

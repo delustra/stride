@@ -21,7 +21,7 @@
   <Import Project="$(StrideRoot)build\Stride.Local.props" Condition="Exists('$(StrideRoot)build\Stride.Local.props')" />
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageType>Template</PackageType>
     <Authors>Stride contributors;Silicon Studio Corp.</Authors>
@@ -72,7 +72,7 @@
 
     <TemplateContentRoot>$(MSBuildProjectDirectory)/obj/template-content</TemplateContentRoot>
     <StrideTemplatesProject>$(StrideRoot)sources/tools/Stride.TemplateGenerator/Stride.TemplateGenerator.csproj</StrideTemplatesProject>
-    <StrideTemplatesDll>$(StrideRoot)sources/tools/Stride.TemplateGenerator/bin/$(Configuration)/net10.0/Stride.TemplateGenerator.dll</StrideTemplatesDll>
+    <StrideTemplatesDll>$(StrideRoot)sources/tools/Stride.TemplateGenerator/bin/$(Configuration)/net11.0/Stride.TemplateGenerator.dll</StrideTemplatesDll>
 
     <!-- Pack mode: 'preprocessed' (CI release) runs full preprocessor; 'minimal' (dev default)
          skips M6 prune (the only PackageSession.Load step). Tied to the engine's StridePackageBuild

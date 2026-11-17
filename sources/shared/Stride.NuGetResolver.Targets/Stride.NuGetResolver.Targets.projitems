@@ -41,9 +41,9 @@
       <_StrideNuGetResolverFile Condition="Exists('$(OutputPath)$(AssemblyName).exe')" Include="$(OutputPath)$(AssemblyName).exe" />
       <_StrideNuGetResolverFile Include="$(OutputPath)NuGet*.dll" />
       <_StrideNuGetResolverFile Include="$(OutputPath)Newtonsoft.Json.dll" />
-      <_StrideNuGetResolverFile Include="$(OutputPath)Microsoft.Extensions.FileProviders.Abstractions.dll" />
+      <_StrideNuGetResolverFile Condition="Exists('$(OutputPath)Microsoft.Extensions.FileProviders.Abstractions.dll')" Include="$(OutputPath)Microsoft.Extensions.FileProviders.Abstractions.dll" />
       <_StrideNuGetResolverFile Include="$(OutputPath)Microsoft.Extensions.FileSystemGlobbing.dll" />
-      <_StrideNuGetResolverFile Include="$(OutputPath)Microsoft.Extensions.Primitives.dll" />
+      <_StrideNuGetResolverFile Condition="Exists('$(OutputPath)Microsoft.Extensions.Primitives.dll')" Include="$(OutputPath)Microsoft.Extensions.Primitives.dll" />
       <_StrideNuGetResolverFile Include="$(OutputPath)Stride.NuGetResolver*.dll" />
       <!-- Needed by NuGet.Packaging in cross platform builds (see https://github.com/stride3d/stride/issues/2232) -->
       <_StrideNuGetResolverFile Condition=" '$(TargetFramework)' == '$(StrideXplatEditorTargetFramework)' " Include="$(OutputPath)System.Security.Cryptography.Pkcs.dll" />
@@ -61,7 +61,7 @@
   <Target Name="_StrideIncludeNuGetResolverInTools" DependsOnTargets="_StrideCollectNuGetResolverFiles">
     <PropertyGroup>
       <!-- Mirror NuGet's lib folder name, which appends the default platform version
-           (net10.0-windows -> net10.0-windows7.0), so locators resolve the same way. -->
+           (net11.0-windows -> net11.0-windows7.0), so locators resolve the same way. -->
       <_StrideToolsTfm>$(TargetFramework)</_StrideToolsTfm>
       <_StrideToolsTfm Condition="'$(TargetPlatformVersion)' != '' and !$(TargetFramework.EndsWith($(TargetPlatformVersion)))">$(TargetFramework)$(TargetPlatformVersion)</_StrideToolsTfm>
     </PropertyGroup>

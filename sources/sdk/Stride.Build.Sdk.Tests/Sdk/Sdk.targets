@@ -16,7 +16,7 @@
        has the "Maui" ProjectCapability. The string is a tag VS matches via MEF metadata — VS
        doesn't validate that the project actually uses MAUI. No MAUI workload, packages, or SDK
        imports needed; just this capability + a platform-suffixed desktop TFM (covered above on
-       Windows host by the net10.0-windows injection). -->
+       Windows host by the net11.0-windows injection). -->
   <ItemGroup Condition="$(_StrideTestPlatforms.Contains(';Android;')) Or $(_StrideTestPlatforms.Contains(';iOS;'))">
     <ProjectCapability Include="Maui" />
   </ItemGroup>
@@ -52,12 +52,12 @@
     <StridePlatform Condition=" '$(StrideTargetFramework)' == '$(StrideFrameworkiOS)' ">iOS</StridePlatform>
     <StridePlatform Condition=" '$(StrideTargetFramework)' == '$(StrideFrameworkmacOS)' ">macOS</StridePlatform>
     <StridePlatform Condition=" '$(StrideTargetFramework)' == '$(StrideFrameworkUWP)' ">UWP</StridePlatform>
-    <!-- net10.0 + Game in test platforms: tag StridePlatform=Game so the host-loadable
+    <!-- net11.0 + Game in test platforms: tag StridePlatform=Game so the host-loadable
          library TFM gets its own output folder (bin/Tests/.../Game-Vulkan/) instead of
-         colliding with net10.0-macos on darwin host (which would otherwise both resolve
+         colliding with net11.0-macos on darwin host (which would otherwise both resolve
          StridePlatform=macOS via Stride.Platform.props's host fallback). Game is suppressed
          when a runnable host (Linux/macOS/Windows-without-mobile) is also in the list: the
-         runnable's net10.0 .dll is already host-loadable by CompilerApp, so Game would be
+         runnable's net11.0 .dll is already host-loadable by CompilerApp, so Game would be
          redundant and would clobber the runnable's StridePlatform identity. -->
     <StridePlatform Condition=" '$(StrideTargetFramework)' == '$(StrideFramework)' And $(_StrideTestPlatforms.Contains(';Game;')) And !$(_StrideTestPlatforms.Contains(';Linux;')) And !$(_StrideTestPlatforms.Contains(';macOS;')) And !($(_StrideTestPlatforms.Contains(';Windows;')) And !($(_StrideTestPlatforms.Contains(';Android;')) Or $(_StrideTestPlatforms.Contains(';iOS;')))) ">Game</StridePlatform>
   </PropertyGroup>
@@ -166,7 +166,7 @@
   </PropertyGroup>
   <!-- Game's StridePlatform is set above in this file (after Sdk.props ran), so Sdk.props's
        IntermediateOutputPath used the host fallback (e.g. obj/macOS-Vulkan/) which collides with
-       the real net10.0-macos TFM. Recompute now that StridePlatform=Game is resolved. -->
+       the real net11.0-macos TFM. Recompute now that StridePlatform=Game is resolved. -->
   <PropertyGroup Condition=" '$(StridePlatform)' == 'Game' ">
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)$(StridePlatform)-$(StrideGraphicsApi)\$(Configuration)\</IntermediateOutputPath>
   </PropertyGroup>
@@ -290,7 +290,7 @@
        Custom metadata can't be read in ItemGroup conditions outside a Target (MSB4191), so this
        Update runs inside a target with BeforeTargets="AssignProjectConfiguration" — the first
        step in PrepareProjectReferencesDependsOn, ahead of every PR dispatch target. -->
-  <!-- StrideCompilerSkipBuild is set on the meta's shadow-host TFM (net10.0) inner build to skip
+  <!-- StrideCompilerSkipBuild is set on the meta's shadow-host TFM (net11.0) inner build to skip
        its own asset compile. As a propagated global it leaks into suites' iOS/Android inner builds
        and skips _StrideEnsureCompilerAppPacked there too — StrideCompileAsset then errors with
        "Stride AssetCompiler could not be found". Strip unconditionally at eval time (so NuGet

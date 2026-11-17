@@ -194,7 +194,7 @@ namespace Stride.CrashReport
         // Source-checkout layout: the reporter isn't in the NuGet store (a source-built host doesn't restore its
         // own package), it's built under the checkout. Detect the root the same way the NuGet resolver does — walk
         // up for Stride.slnx next to sources/ — then resolve the reporter from its build output, preferring the configuration
-        // the caller is running under. Its TFM (the xplat-editor net10.0) differs from the host's, so probe each.
+        // the caller is running under. Its TFM (the xplat-editor net11.0) differs from the host's, so probe each.
         private static string FindReporterInDevTree()
         {
             try

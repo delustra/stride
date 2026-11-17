@@ -82,7 +82,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 11.0.x
 
       # Package builds take the prerelease suffix from SharedAssemblyInfo.cs (through its generated
       # overlay); it is rewritten in the working copy only.

@@ -2,17 +2,17 @@
 
   <!-- Define default frameworks for each target -->
   <PropertyGroup>
-    <StrideFramework>net10.0</StrideFramework>
-    <StrideFrameworkAndroid>net10.0-android</StrideFrameworkAndroid>
-    <StrideFrameworkiOS>net10.0-ios</StrideFrameworkiOS>
+    <StrideFramework>net11.0</StrideFramework>
+    <StrideFrameworkAndroid>net11.0-android</StrideFrameworkAndroid>
+    <StrideFrameworkiOS>net11.0-ios</StrideFrameworkiOS>
     <StrideFrameworkUWP>uap10.0.16299</StrideFrameworkUWP>
-    <StrideFrameworkWindows>net10.0-windows</StrideFrameworkWindows>
-    <StrideFrameworkmacOS>net10.0-macos</StrideFrameworkmacOS>
+    <StrideFrameworkWindows>net11.0-windows</StrideFrameworkWindows>
+    <StrideFrameworkmacOS>net11.0-macos</StrideFrameworkmacOS>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
   <!-- StrideTargetFramework collapses any platform-version suffix on TargetFramework down to
-       the family constant: net10.0-windows10.0.19041.0 → net10.0-windows. SDK conditions
+       the family constant: net11.0-windows10.0.19041.0 → net11.0-windows. SDK conditions
        compare against this so a project can opt into a versioned OS moniker (e.g. for
        WinRT projection access) without breaking platform/dependency setup. -->
   <PropertyGroup>

@@ -94,7 +94,7 @@ internal sealed class RegenerateShadersCommand : Command
 
         if (result.RuntimeMissing)
         {
-            data.Complete("This needs the .NET 10 runtime, which wasn't found. Install it from https://dotnet.microsoft.com/download and try again.");
+            data.Complete("This needs the .NET 11 runtime, which wasn't found. Install it from https://dotnet.microsoft.com/download and try again.");
             return;
         }
         if (!result.Launched)

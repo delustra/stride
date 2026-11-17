@@ -58,7 +58,7 @@ internal static class StrideCli
         };
         foreach (var argument in arguments)
             startInfo.ArgumentList.Add(argument);
-        // The net8 host exports DOTNET_ROOT*/DOTNET_HOST_PATH; a net10 apphost that inherits them resolves the
+        // The net8 host exports DOTNET_ROOT*/DOTNET_HOST_PATH; a net11 apphost that inherits them resolves the
         // wrong runtime and fails with "install .NET". Strip them so the CLI uses the machine install.
         foreach (var variable in new[] { "DOTNET_ROOT", "DOTNET_ROOT(x86)", "DOTNET_ROOT_X64", "DOTNET_ROOT_ARM64", "DOTNET_HOST_PATH" })
             startInfo.Environment.Remove(variable);

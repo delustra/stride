@@ -37,7 +37,7 @@ When installing VS 2026, make sure these are selected:
 
 If you'd rather not install the full Visual Studio IDE:
 
-1. Install the **[.NET 10.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)** (bundled with VS Desktop Development workload, otherwise standalone).
+1. Install the **[.NET 11.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/11.0)** (bundled with VS Desktop Development workload, otherwise standalone).
 2. Install [Visual Studio Build Tools](https://visualstudio.microsoft.com/downloads/) (under *Tools for Visual Studio* → Build Tools for Visual Studio 2026), with the same workloads listed above.
 3. Add MSBuild to your `PATH` (e.g. `C:\Program Files\Microsoft Visual Studio\18\BuildTools\MSBuild\Current\Bin`).
 4. Clone the repo:
