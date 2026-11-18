@@ -12,6 +12,7 @@
   <ItemGroup>
     <PackageReference Include="NuGet.Protocol" />
     <PackageReference Include="NuGet.Commands" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
   </ItemGroup>
 
 </Project>

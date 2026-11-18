@@ -23,6 +23,7 @@
   <ItemGroup>
     <PackageReference Include="NuGet.Protocol" />
     <PackageReference Include="NuGet.Commands" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
     <PackageReference Include="Avalonia.Desktop" PrivateAssets="all" />
     <PackageReference Include="Avalonia.Themes.Fluent" PrivateAssets="all" />
   </ItemGroup>
