@@ -77,6 +77,7 @@ namespace Stride.Rendering.Lights
 
                 renderLight.Type = lightComponent.Type;
                 renderLight.Intensity = lightComponent.Intensity;
+                renderLight.LightGroups = lightComponent.LightGroups;
                 renderLight.WorldMatrix = lightComponent.Entity.Transform.WorldMatrix;
 
                 // Update info specific to this light type

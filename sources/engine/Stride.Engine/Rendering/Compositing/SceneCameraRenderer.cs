@@ -6,6 +6,7 @@ using Stride.Core.Diagnostics;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Graphics;
+using Stride.Rendering.Lights;
 
 namespace Stride.Rendering.Compositing
 {
@@ -31,6 +32,12 @@ namespace Stride.Rendering.Compositing
         public ISceneRenderer Child { get; set; }
 
         public RenderGroupMask RenderMask { get; set; } = RenderGroupMask.All;
+
+        /// <summary>
+        /// Gets or sets the light groups this renderer is lit by.
+        /// </summary>
+        /// <userdoc>The lights that are in one of these groups light what this renderer draws.</userdoc>
+        public LightGroupMask LightMask { get; set; } = LightGroupMask.All;
 
         [DataMemberIgnore]
         public Logger Logger = GlobalLogger.GetLogger(nameof(SceneCameraRenderer));
@@ -100,6 +107,7 @@ namespace Stride.Rendering.Compositing
             using var _ = Profiler.Begin(CollectInnerKey);
 
             RenderView.CullingMask = RenderMask;
+            RenderView.LightMask = LightMask;
 
             Child?.Collect(renderContext);
         }
