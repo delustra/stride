@@ -15,6 +15,35 @@
 [![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/stride3d/stride/blob/master/LICENSE.md)
 [![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-2.0-4baaaa.svg)](.github/CODE_OF_CONDUCT.md)
 
+# About this fork (delustra/stride, branch `crafter`)
+
+This fork is the engine of CrafterDudes. The `crafter` branch is upstream `master` with the changes
+below merged in, each from a branch of its own. `master` mirrors stride3d/stride and carries none of
+them.
+
+| Change | Branch | Upstream | What it does |
+| --- | --- | --- | --- |
+| Collider change in place | `fix/compound-change-in-place` | [#3532](https://github.com/stride3d/stride/pull/3532) | A collider change reshapes a live collidable in place and moves its constraints with the center of mass; the contacts of the old shape end, and each interpolation pose shifts by its own orientation |
+| Pkcs 11.0.0 | `fix/pkcs-11.0.0` | not offered yet | `System.Security.Cryptography.Pkcs` 11.0.0 over the 8.0.1 that NuGet.Packaging brings, which has [GHSA-846f-f764-76mx](https://github.com/advisories/GHSA-846f-f764-76mx); `Stride.Core.Packages` and the NuGet resolver reference it |
+| .NET 11 | `crafter` only | fork-only | The engine, editors, tools, tests, samples and templates target `net11.0` (`StrideFramework` and the TFMs derived from it), `global.json` pins SDK 11.0.100 and the CI workflows set up 11.0.x; the framework packages are on 11.0.0 (System.Text.Json, System.Management, Microsoft.Extensions.DependencyModel, Microsoft.Extensions.DependencyInjection.Abstractions) the SDK-band ones on 11.0.100 (TemplateEngine, SourceLink, ApiCompat) and NuGet.* on 8.0.0, the version SDK 11 ships. The asset compiler's runtime config template no longer passes `GenerateRuntimeConfigDevFile`, which SDK 11 removed, and the NuGet resolver's bootstrap set takes `Microsoft.Extensions.FileProviders.Abstractions` and `Primitives` only when the build copies them (they are part of the .NET 11 runtime). `deps/AssemblyProcessor/net10.0` stays: the build loads the netstandard2.0 one |
+| Pack (Crafter) workflow | `crafter` only | fork-only | `.github/workflows/pack-crafter.yml` builds a ref's NuGet packages for Windows and Linux as `<MajorMinor.Patch>-dev.<run>` and publishes them to the `engine-packages-<ref>` release |
+
+`crafter` is built on upstream `master`: the Pack (Crafter) and .NET 11 commits, then a merge of each change's
+branch. To update it, merge upstream `master` into it and merge again each branch that moved, or build it again
+that way on a newer `master` (as on 2026-11-17, the state before kept as the tag `crafter-pre-rebuild`, on
+2026-11-18 and on 2026-11-23).
+When a change lands upstream, its row goes. Every merge into `crafter` keeps this table in step.
+
+Left out since 2026-11-18: the lighting sets (`feat/lighting-sets`, [#3946](https://github.com/stride3d/stride/pull/3946)).
+In upstream `master` now: the upload buffer race fix ([#4026](https://github.com/stride3d/stride/pull/4026)) and the lights by
+light layer ([#4046](https://github.com/stride3d/stride/pull/4046): `LightComponent.LightLayers`, `Layer0` by default, and
+`SceneCameraRenderer.LightMask`), which replace the `LightGroups` this branch carried.
+
+Pending: `SixLabors.ImageSharp` 3.2.0 (`chore/imagesharp-3.2.0`, [#3971](https://github.com/stride3d/stride/pull/3971)),
+for the advisories against 3.1.12 (GHSA-jjfr-hcj7-qf5w and five others NuGet reports). 3.2.0 validates a Six Labors
+license key before `CoreCompile` and fails a Release build without one, so `crafter` stays on 3.1.12 until the key
+question is settled.
+
 # Welcome to the Stride Game Engine
 
 Stride is an open-source C# game engine designed for realistic rendering and VR. Highly modular, it aims to give game makers more flexibility in their development. Stride comes with an editor, [Game Studio](https://doc.stride3d.net/latest/en/manual/game-studio/index.html), which allows you to create and manage the content of your games or applications visually and intuitively. To learn more about Stride, visit [stride3d.net](https://stride3d.net/).
@@ -65,7 +94,7 @@ Our [Roadmap](https://doc.stride3d.net/latest/en/contributors/roadmap.html) comm
 
 1. **Latest [Git](https://git-scm.com/downloads)** — the Windows installer includes Git LFS by default; make sure it stays enabled. For convenience, you can also use a UI client like [GitExtensions](https://gitextensions.github.io/).
 2. **[Visual Studio 2026](https://visualstudio.microsoft.com/downloads/)** (Community edition is free), with these two workloads:
-   - **.NET desktop development** (bundles the .NET 10 SDK)
+   - **.NET desktop development** (bundles the .NET 11 SDK)
    - **Desktop development with C++**
 
 > See [docs/build/README.md](docs/build/README.md) for detailed prerequisites (specific MSVC toolset versions, optional iOS/Android/ARM64/VSIX components, command-line builds without VS, and troubleshooting).
