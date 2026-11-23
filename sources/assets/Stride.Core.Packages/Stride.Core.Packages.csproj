@@ -14,6 +14,7 @@
     <PackageReference Include="NuGet.PackageManagement" />
     <PackageReference Include="NuGet.Resolver" />
     <PackageReference Include="NuGet.Commands" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\shared\SharedAssemblyInfo.cs">
