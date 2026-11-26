@@ -11,7 +11,7 @@ namespace Stride.Rendering.Images
 		// Enable/disable blurring SSR during sampling results and mixing with reflections buffer
 		#define SSR_MIX_BLUR 1
 		
-		float3 SampleSSR(float2 uv)
+		float4 SampleSSR(float2 uv)
 		{
 			float4 ssr = Texture4.SampleLevel(LinearSampler, uv, 0);
 			
@@ -46,12 +46,13 @@ namespace Stride.Rendering.Images
 			// Texture2 - World Space Normals
 			// Texture3 - Specular Color + Roughness
 			// Texture4 - Reflections result
+			// Texture5 - Specular reflection of the environment lights in the scene color
 			
 			float2 uv = streams.TexCoord;
 			
 			// Sample inputs
 			float4 sceneColor = Texture0.SampleLevel(PointSampler, uv, 0);
-			float3 ssr = SampleSSR(uv);
+			float4 ssr = SampleSSR(uv);
 			float3 positionWS = ComputeWorldPosition(uv);
 			
 			// Calculate view space normal vector
@@ -67,7 +68,12 @@ namespace Stride.Rendering.Images
 			// Calculate reflection color
 			float3 viewVector = normalize(CameraPosWS.xyz - positionWS);
 			float NoV = saturate(dot(normalWS, viewVector));
-			sceneColor.rgb += ssr * EnvBRDFApprox(specularColor, roughness, NoV);
+			sceneColor.rgb += ssr.rgb * EnvBRDFApprox(specularColor, roughness, NoV);
+
+			// Where a ray found the scene, what it found stands in for the environment.
+			// The resolve pass weights its color by the hit mask twice, so the environment leaves by the same weight.
+			float3 environmentSpecular = Texture5.SampleLevel(PointSampler, uv, 0).rgb;
+			sceneColor.rgb = max(sceneColor.rgb - environmentSpecular * (ssr.a * ssr.a * EnvironmentSpecularWeight), 0);
 			
 			return sceneColor;
 		}

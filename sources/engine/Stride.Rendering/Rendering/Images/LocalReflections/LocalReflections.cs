@@ -49,6 +49,10 @@ namespace Stride.Rendering.Images
         private const PixelFormat ReflectionsFormat = PixelFormat.R11G11B10_Float;
 #endif
 
+        // The resolved reflections keep in alpha how much of a pixel's rays found the scene: the combine pass takes
+        // the reflection of the environment out by it
+        private const PixelFormat ResolvedReflectionsFormat = PixelFormat.R16G16B16A16_Float;
+
         private ImageEffectShader depthPassShader;
         private ImageEffectShader blurPassShaderH;
         private ImageEffectShader blurPassShaderV;
@@ -268,7 +272,7 @@ namespace Stride.Rendering.Images
                 if (TemporalBuffer == null || TemporalBuffer.Size != size)
                 {
                     TemporalBuffer?.Dispose();
-                    TemporalBuffer = Texture.New2D(context.GraphicsDevice, size.Width, size.Height, 1, ReflectionsFormat, TextureFlags.ShaderResource | TextureFlags.RenderTarget);
+                    TemporalBuffer = Texture.New2D(context.GraphicsDevice, size.Width, size.Height, 1, ResolvedReflectionsFormat, TextureFlags.ShaderResource | TextureFlags.RenderTarget);
                     // The temporal pass reads this as the previous frame, and new texture memory is undefined
                     context.CommandList.Clear(TemporalBuffer, new Color4(0.0f));
                 }
@@ -362,10 +366,27 @@ namespace Stride.Rendering.Images
         /// <param name="specularRoughnessBuffer">The buffer which contains surface specular color and roughness.</param>
         public void SetInputSurfaces(Texture colorBuffer, Texture depthBuffer, Texture normalsBuffer, Texture specularRoughnessBuffer)
         {
+            SetInputSurfaces(colorBuffer, depthBuffer, normalsBuffer, specularRoughnessBuffer, null);
+        }
+
+        /// <summary>
+        /// Provides the buffers of the scene, with the specular reflection of the environment lights that the color buffer holds.
+        /// </summary>
+        /// <param name="colorBuffer">Single view of the scene</param>
+        /// <param name="depthBuffer">The depth buffer corresponding to the color buffer provided.</param>
+        /// <param name="normalsBuffer">The buffer which contains surface packed world space normal vectors.</param>
+        /// <param name="specularRoughnessBuffer">The buffer which contains surface specular color and roughness.</param>
+        /// <param name="environmentSpecularBuffer">The buffer which contains the specular reflection of the environment lights, or null.</param>
+        /// <remarks>
+        /// With <paramref name="environmentSpecularBuffer"/>, a reflection found on screen replaces the reflection of the environment. Without it, it is added to it.
+        /// </remarks>
+        public void SetInputSurfaces(Texture colorBuffer, Texture depthBuffer, Texture normalsBuffer, Texture specularRoughnessBuffer, Texture environmentSpecularBuffer)
+        {
             SetInput(0, colorBuffer);
             SetInput(1, depthBuffer);
             SetInput(2, normalsBuffer);
             SetInput(3, specularRoughnessBuffer);
+            SetInput(4, environmentSpecularBuffer);
         }
 
         private TemporalFrameCache Prepare(RenderDrawContext context, Texture outputBuffer)
@@ -461,6 +482,7 @@ namespace Stride.Rendering.Images
             Texture depthBuffer = GetSafeInput(1);
             Texture normalsBuffer = GetSafeInput(2);
             Texture specularRoughnessBuffer = GetSafeInput(3);
+            Texture environmentSpecularBuffer = GetInput(4);
 
             // Output:
             Texture outputBuffer = GetSafeOutput(0);
@@ -473,7 +495,7 @@ namespace Stride.Rendering.Images
             var rayTraceBuffersSize = GetBufferResolution(outputBuffer, RayTracePassResolution);
             var resolveBuffersSize = GetBufferResolution(outputBuffer, ResolvePassResolution);
             Texture rayTraceBuffer = NewScopedRenderTarget2D(rayTraceBuffersSize.Width, rayTraceBuffersSize.Height, RayTraceTargetFormat, 1);
-            Texture resolveBuffer = NewScopedRenderTarget2D(resolveBuffersSize.Width, resolveBuffersSize.Height, ReflectionsFormat, 1);
+            Texture resolveBuffer = NewScopedRenderTarget2D(resolveBuffersSize.Width, resolveBuffersSize.Height, ResolvedReflectionsFormat, 1);
 
             // Check if resize depth
             Texture smallerDepthBuffer = depthBuffer;
@@ -583,7 +605,7 @@ namespace Stride.Rendering.Images
             {
                 var temporalSize = outputBuffer.Size;
                 temporalCache.Resize(context, ref temporalSize);
-                Texture temporalBuffer0 = NewScopedRenderTarget2D(temporalSize.Width, temporalSize.Height, ReflectionsFormat, 1);
+                Texture temporalBuffer0 = NewScopedRenderTarget2D(temporalSize.Width, temporalSize.Height, ResolvedReflectionsFormat, 1);
 
                 temporalPassShader.SetInput(0, resolveBuffer);
                 temporalPassShader.SetInput(1, temporalCache.TemporalBuffer);
@@ -602,6 +624,8 @@ namespace Stride.Rendering.Images
             combinePassShader.SetInput(2, normalsBuffer);
             combinePassShader.SetInput(3, specularRoughnessBuffer);
             combinePassShader.SetInput(4, reflectionsBuffer);
+            combinePassShader.SetInput(5, environmentSpecularBuffer ?? GraphicsDevice.GetSharedWhiteTexture());
+            combinePassShader.Parameters.Set(SSLRCommonKeys.EnvironmentSpecularWeight, environmentSpecularBuffer != null ? 1.0f : 0.0f);
             combinePassShader.SetOutput(outputBuffer);
             combinePassShader.Draw(context, "Combine");
 

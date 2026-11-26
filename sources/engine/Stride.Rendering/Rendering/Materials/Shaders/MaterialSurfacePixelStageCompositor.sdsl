@@ -13,6 +13,7 @@ namespace Stride.Rendering.Materials
             // Prepare global streams (temp)
             streams.viewWS = normalize(Eye.xyz - streams.PositionWS.xyz);
             streams.shadingColor = 0;
+            streams.shadingEnvironmentSpecular = 0;
 
             // Reset material streams
             streamInitializerPixelStage.ResetStream();

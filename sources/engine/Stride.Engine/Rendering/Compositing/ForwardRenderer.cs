@@ -259,6 +259,11 @@ namespace Stride.Rendering.Compositing
                     renderOutputValidator.Add<SpecularColorRoughnessTargetSemantic>(PixelFormat.R8G8B8A8_UNorm);
                 }
 
+                if (PostEffects.RequiresEnvironmentSpecularBuffer)
+                {
+                    renderOutputValidator.Add<EnvironmentSpecularTargetSemantic>(PixelFormat.R11G11B10_Float);
+                }
+
                 if (PostEffects.RequiresVelocityBuffer)
                 {
                     renderOutputValidator.Add<VelocityTargetSemantic>(PixelFormat.R16G16_Float);

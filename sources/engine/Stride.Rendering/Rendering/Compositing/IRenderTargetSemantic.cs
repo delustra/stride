@@ -31,6 +31,14 @@ namespace Stride.Rendering.Compositing
         public ShaderSource ShaderClass { get; } = new ShaderClassSource("GBufferOutputSpecularColorRoughness");
     }
 
+    /// <summary>
+    /// The specular reflection of the environment lights, as the shading added it to the color target.
+    /// </summary>
+    public class EnvironmentSpecularTargetSemantic : IRenderTargetSemantic
+    {
+        public ShaderSource ShaderClass { get; } = new ShaderClassSource("GBufferOutputEnvironmentSpecular");
+    }
+
     public class VelocityTargetSemantic : IRenderTargetSemantic
     {
         public ShaderSource ShaderClass { get; } = new ShaderClassSource("VelocityOutput");

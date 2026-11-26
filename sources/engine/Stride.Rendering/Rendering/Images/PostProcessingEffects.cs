@@ -265,6 +265,12 @@ namespace Stride.Rendering.Images
                 SetInput(6, inputs[velocityIndex]);
             }
 
+            var environmentSpecularIndex = outputValidator.Find<EnvironmentSpecularTargetSemantic>();
+            if (environmentSpecularIndex >= 0)
+            {
+                SetInput(7, inputs[environmentSpecularIndex]);
+            }
+
             SetOutput(outputTarget);
             Draw(drawContext);
         }
@@ -274,6 +280,9 @@ namespace Stride.Rendering.Images
         public bool RequiresNormalBuffer => LocalReflections.Enabled;
 
         public bool RequiresSpecularRoughnessBuffer => LocalReflections.Enabled;
+
+        /// <inheritdoc/>
+        public bool RequiresEnvironmentSpecularBuffer => LocalReflections.Enabled;
 
         protected override void DrawCore(RenderDrawContext context)
         {
@@ -397,7 +406,7 @@ namespace Stride.Rendering.Images
                 {
                     // Local reflections
                     var rlrOutput = NewScopedRenderTarget2D(input.Width, input.Height, input.Format);
-                    LocalReflections.SetInputSurfaces(currentInput, inputDepthTexture, normalsBuffer, specularRoughnessBuffer);
+                    LocalReflections.SetInputSurfaces(currentInput, inputDepthTexture, normalsBuffer, specularRoughnessBuffer, GetInput(7));
                     LocalReflections.SetOutput(rlrOutput);
                     LocalReflections.Draw(context);
                     currentInput = rlrOutput;

@@ -13,7 +13,8 @@ namespace Stride.Rendering.Images
             stage float MaxColorMiplevel;
             stage float TraceSizeMax;
             stage float MaxTraceSamples;
-            //stage float Padding0;
+            // 1 when Texture5 of the combine pass holds the specular reflection of the environment lights, 0 otherwise
+            stage float EnvironmentSpecularWeight;
 
             stage float RoughnessFade;
             stage float TemporalTime;

@@ -10,6 +10,9 @@ namespace Stride.Rendering.Materials
         // Output of the shading color alpha
         stage stream float  shadingColorAlpha;
 
+        // The part of the shading color that is the specular reflection of the environment lights
+        stage stream float3 shadingEnvironmentSpecular;
+
         // Half vector (sum of normalWS + lightDirectionWS)
         stage stream float3 H;
 

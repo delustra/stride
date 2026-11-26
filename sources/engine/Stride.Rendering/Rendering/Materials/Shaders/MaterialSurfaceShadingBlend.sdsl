@@ -7,10 +7,13 @@ namespace Stride.Rendering.Materials
         override void Compute()
         {
             var backupShadingColor = streams.shadingColor;
+            var backupEnvironmentSpecular = streams.shadingEnvironmentSpecular;
 			var blending = streams.matBlend;
             streams.shadingColor = 0;
+            streams.shadingEnvironmentSpecular = 0;
             base.Compute();
             streams.shadingColor = lerp(backupShadingColor, streams.shadingColor, blending);
+            streams.shadingEnvironmentSpecular = lerp(backupEnvironmentSpecular, streams.shadingEnvironmentSpecular, blending);
         }
     };
 }

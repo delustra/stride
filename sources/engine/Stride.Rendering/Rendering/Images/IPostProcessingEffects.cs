@@ -19,5 +19,10 @@ namespace Stride.Rendering.Images
         bool RequiresNormalBuffer { get; }
 
         bool RequiresSpecularRoughnessBuffer { get; }
+
+        /// <summary>
+        /// Whether the effects need the specular reflection of the environment lights in a target of its own.
+        /// </summary>
+        bool RequiresEnvironmentSpecularBuffer => false;
     }
 }
