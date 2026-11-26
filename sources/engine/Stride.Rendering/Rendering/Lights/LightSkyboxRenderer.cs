@@ -82,6 +82,7 @@ namespace Stride.Rendering.Lights
         private class LightSkyBoxShaderGroup : LightShaderGroup
         {
             private static readonly ShaderClassSource EmptyComputeEnvironmentColorSource = new ShaderClassSource("IComputeEnvironmentColor");
+            private static readonly ShaderClassSource RoughnessCubeMapEnvironmentColorSource = new ShaderClassSource("RoughnessCubeMapEnvironmentColor");
 
             private ValueParameterKey<float> intensityKey;
             private ValueParameterKey<Matrix> skyMatrixKey;
@@ -133,7 +134,9 @@ namespace Stride.Rendering.Lights
                 var specularParameters = skybox.SpecularLightingParameters;
 
                 var lightDiffuseColorShader = diffuseParameters.Get(SkyboxKeys.Shader) ?? EmptyComputeEnvironmentColorSource;
-                var lightSpecularColorShader = specularParameters.Get(SkyboxKeys.Shader) ?? EmptyComputeEnvironmentColorSource;
+                var lightSpecularColorShader = lightSkybox.SpecularCubeMap != null
+                    ? RoughnessCubeMapEnvironmentColorSource
+                    : specularParameters.Get(SkyboxKeys.Shader) ?? EmptyComputeEnvironmentColorSource;
 
                 renderEffect.EffectValidator.ValidateParameter(lightDiffuseColorKey, lightDiffuseColorShader);
                 renderEffect.EffectValidator.ValidateParameter(lightSpecularColorKey, lightSpecularColorShader);
@@ -153,7 +156,7 @@ namespace Stride.Rendering.Lights
                 var diffuseParameters = skybox.DiffuseLightingParameters;
                 var specularParameters = skybox.SpecularLightingParameters;
 
-                var specularCubemap = specularParameters.Get(SkyboxKeys.CubeMap);
+                var specularCubemap = lightSkybox.SpecularCubeMap ?? specularParameters.Get(SkyboxKeys.CubeMap);
                 int specularCubemapLevels = 0;
                 if (specularCubemap != null)
                 {
